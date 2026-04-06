@@ -12,7 +12,7 @@ echo "Actualizando Biblia App..."
 cd $APP_DIR
 git pull origin pro
 npm install
-npx tsx scripts/seed-db.ts
+npx tsx scripts/seed-db.ts --modernized
 npm run build
 pm2 restart biblia
 

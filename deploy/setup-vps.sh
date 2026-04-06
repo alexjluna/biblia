@@ -43,7 +43,7 @@ cd $APP_DIR
 # 5. Instalar dependencias, crear DB, y compilar
 echo "[5/7] Instalando dependencias y compilando..."
 npm install
-npx tsx scripts/seed-db.ts
+npx tsx scripts/seed-db.ts --modernized
 npm run build
 
 # 6. Configurar Nginx
