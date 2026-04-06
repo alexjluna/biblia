@@ -3,7 +3,11 @@ import { readFileSync } from "fs";
 import { join } from "path";
 
 const DB_PATH = join(__dirname, "..", "biblia.db");
-const JSON_PATH = join(__dirname, "..", "data", "rv_1909.json");
+const useModernized = process.argv.includes("--modernized");
+const JSON_PATH = join(
+  __dirname, "..", "data",
+  useModernized ? "rv_1909_modernizada.json" : "rv_1909.json"
+);
 
 interface RawVerse {
   book_name: string;
