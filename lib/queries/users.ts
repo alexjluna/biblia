@@ -87,3 +87,62 @@ export function isAdmin(userId: string): boolean {
     .get(userId) as { role: string } | undefined;
   return row?.role === "admin";
 }
+
+export function getUserStats(userId: string): {
+  chaptersRead: number;
+  favorites: number;
+  discussions: number;
+  likesGiven: number;
+} {
+  const db = getDb();
+
+  const chapters = (db.prepare("SELECT COUNT(*) as c FROM reading_progress WHERE user_id = ?").get(userId) as { c: number }).c;
+  const favs = (db.prepare("SELECT COUNT(*) as c FROM favorites WHERE user_id = ?").get(userId) as { c: number }).c;
+  const msgs = (db.prepare("SELECT COUNT(*) as c FROM discussion_messages WHERE user_id = ? AND is_deleted = 0").get(userId) as { c: number }).c;
+  const likes = (db.prepare("SELECT COUNT(*) as c FROM discussion_likes WHERE user_id = ?").get(userId) as { c: number }).c;
+
+  return { chaptersRead: chapters, favorites: favs, discussions: msgs, likesGiven: likes };
+}
+
+export interface ActivityItem {
+  type: "read" | "favorite" | "discussion" | "bookmark";
+  bookNumber: number;
+  bookName: string;
+  chapter: number;
+  verse?: number;
+  detail?: string;
+  createdAt: string;
+}
+
+export function getUserActivity(userId: string, limit: number = 20): ActivityItem[] {
+  const db = getDb();
+
+  const rows = db.prepare(`
+    SELECT 'read' as type, b.number as bookNumber, b.name as bookName, rp.chapter, NULL as verse, NULL as detail, rp.completed_at as createdAt
+    FROM reading_progress rp
+    JOIN books b ON rp.book_number = b.number
+    WHERE rp.user_id = ?
+
+    UNION ALL
+
+    SELECT 'favorite' as type, b.number as bookNumber, b.name as bookName, v.chapter, v.verse, NULL as detail, f.created_at as createdAt
+    FROM favorites f
+    JOIN verses v ON f.verse_id = v.id
+    JOIN books b ON v.book_number = b.number
+    WHERE f.user_id = ?
+
+    UNION ALL
+
+    SELECT 'discussion' as type, b.number as bookNumber, b.name as bookName, v.chapter, v.verse, dm.content as detail, dm.created_at as createdAt
+    FROM discussion_messages dm
+    JOIN discussions d ON dm.discussion_id = d.id
+    JOIN verses v ON d.verse_id = v.id
+    JOIN books b ON v.book_number = b.number
+    WHERE dm.user_id = ? AND dm.is_deleted = 0
+
+    ORDER BY createdAt DESC
+    LIMIT ?
+  `).all(userId, userId, userId, limit) as ActivityItem[];
+
+  return rows;
+}

@@ -3,6 +3,7 @@
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import { useState } from "react";
+import { NotificationBadge } from "./NotificationBadge";
 
 export function UserMenu() {
   const { data: session, status } = useSession();
@@ -34,7 +35,7 @@ export function UserMenu() {
     <div className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2"
+        className="relative flex items-center gap-2 cursor-pointer transition-transform hover:scale-110 active:scale-95"
       >
         {session.user.image ? (
           <img
@@ -47,6 +48,7 @@ export function UserMenu() {
             {initials}
           </div>
         )}
+        <NotificationBadge />
       </button>
 
       {open && (
@@ -61,6 +63,13 @@ export function UserMenu() {
                 {session.user.email}
               </p>
             </div>
+            <Link
+              href="/mi-cuenta"
+              onClick={() => setOpen(false)}
+              className="block w-full text-left px-3 py-2 text-sm text-text-primary hover:bg-gray-50 transition-colors"
+            >
+              Mi cuenta
+            </Link>
             <button
               onClick={() => signOut({ callbackUrl: "/login" })}
               className="w-full text-left px-3 py-2 text-sm text-text-secondary hover:bg-gray-50 transition-colors"

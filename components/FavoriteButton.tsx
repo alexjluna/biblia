@@ -54,7 +54,7 @@ export function FavoriteButton({
         toggle();
       }}
       disabled={loading}
-      className={`inline-flex items-center justify-center w-8 h-8 rounded-full transition-all ${
+      className={`inline-flex items-center justify-center w-8 h-8 rounded-full cursor-pointer transition-all hover:scale-110 active:scale-95 ${
         isFav
           ? "text-favorite scale-110"
           : "text-text-secondary hover:text-favorite"

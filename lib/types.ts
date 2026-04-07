@@ -64,3 +64,53 @@ export interface ReadingPosition {
   verse: number;
   updatedAt: string;
 }
+
+// Discussion types
+
+export interface Discussion {
+  id: number;
+  verseId: number;
+  createdBy: string;
+  creatorName: string | null;
+  messageCount: number;
+  lastMessageAt: string | null;
+  createdAt: string;
+}
+
+export interface DiscussionSummary {
+  verseId: number;
+  discussionId: number;
+  messageCount: number;
+}
+
+export interface DiscussionMessage {
+  id: number;
+  discussionId: number;
+  authorId: string;
+  authorName: string | null;
+  authorImage: string | null;
+  content: string;
+  parentId: number | null;
+  parentPreview: string | null;
+  parentAuthorName: string | null;
+  likeCount: number;
+  isLiked: boolean;
+  isOwn: boolean;
+  createdAt: string;
+  editedAt: string | null;
+}
+
+export interface Notification {
+  id: number;
+  type: "reply" | "like" | "new_message";
+  discussionId: number;
+  messageId: number | null;
+  fromUserName: string | null;
+  fromUserImage: string | null;
+  bookNumber: number;
+  bookName: string;
+  chapter: number;
+  verse: number;
+  isRead: boolean;
+  createdAt: string;
+}

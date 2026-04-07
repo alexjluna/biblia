@@ -52,7 +52,7 @@ export function ShareButton({
           e.stopPropagation();
           setShowMenu(!showMenu);
         }}
-        className="inline-flex items-center justify-center w-8 h-8 rounded-full text-text-secondary hover:text-accent transition-colors"
+        className="inline-flex items-center justify-center w-8 h-8 rounded-full cursor-pointer text-text-secondary hover:text-accent hover:scale-110 active:scale-95 transition-all"
         title="Compartir"
       >
         <svg

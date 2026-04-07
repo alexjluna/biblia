@@ -15,6 +15,7 @@ npm install
 
 # Migrar DB (NO re-seed — eso borraría datos de usuarios)
 npx tsx scripts/migrate-auth.ts
+npx tsx scripts/migrate-discussions.ts
 
 npm run build
 pm2 restart biblia

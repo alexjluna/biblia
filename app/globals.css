@@ -14,6 +14,7 @@
   --color-whatsapp: #25D366;
   --color-separator: #E7E5E4;
   --color-separator-dark: #3D3836;
+  --color-discussion: #6366F1;
   --font-serif: "Source Serif 4", Georgia, serif;
   --font-sans: Inter, system-ui, sans-serif;
 }
@@ -24,6 +25,14 @@ html {
 
 body {
   font-family: var(--font-sans);
+}
+
+@keyframes slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
 }
 
 .dark body {

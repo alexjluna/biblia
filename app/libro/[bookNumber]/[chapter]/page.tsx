@@ -8,6 +8,7 @@ import {
   isChapterRead,
   getReadingPosition,
 } from "@/lib/queries/reading-progress";
+import { getDiscussionSummariesForChapter } from "@/lib/queries/discussions";
 import { VerseList } from "@/components/VerseList";
 import { ChapterNav } from "@/components/ChapterNav";
 import { MarkReadButton } from "@/components/MarkReadButton";
@@ -16,12 +17,15 @@ export const dynamic = "force-dynamic";
 
 interface Props {
   params: Promise<{ bookNumber: string; chapter: string }>;
+  searchParams: Promise<{ verse?: string }>;
 }
 
-export default async function ChapterPage({ params }: Props) {
+export default async function ChapterPage({ params, searchParams }: Props) {
   const { bookNumber, chapter: chapterStr } = await params;
+  const { verse: verseParam } = await searchParams;
   const bookNum = parseInt(bookNumber, 10);
   const chapter = parseInt(chapterStr, 10);
+  const scrollToVerse = verseParam ? parseInt(verseParam, 10) : undefined;
 
   const book = getBookByNumber(bookNum);
   if (!book || chapter < 1 || chapter > book.chapters_count) notFound();
@@ -54,6 +58,10 @@ export default async function ChapterPage({ params }: Props) {
     // NOTE: NO auto-update here — position only changes when user taps "Dejé aquí" or "Leído"
   }
 
+  // Discussion summaries for this chapter
+  const discussionMap = getDiscussionSummariesForChapter(bookNum, chapter);
+  const discussionSummaries = Object.fromEntries(discussionMap);
+
   // Get prev/next book for navigation
   const prevBook = bookNum > 1 ? getBookByNumber(bookNum - 1) : null;
   const nextBook = bookNum < 66 ? getBookByNumber(bookNum + 1) : null;
@@ -77,7 +85,9 @@ export default async function ChapterPage({ params }: Props) {
         bookName={book.name}
         favoriteVerseIds={favoriteVerseIds}
         savedVerse={savedVerse}
+        scrollToVerse={scrollToVerse}
         isLoggedIn={!!userId}
+        discussionSummaries={discussionSummaries}
       />
 
       {userId && (
