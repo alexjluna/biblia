@@ -1,11 +1,16 @@
 import Link from "next/link";
+import { auth } from "@/lib/auth";
 import { getFavorites } from "@/lib/queries/favorites";
 import { FavoriteCard } from "@/components/FavoriteCard";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
-export default function FavoritosPage() {
-  const favorites = getFavorites();
+export default async function FavoritosPage() {
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
+
+  const favorites = getFavorites(session.user.id);
 
   return (
     <div className="max-w-lg mx-auto px-4 py-6">

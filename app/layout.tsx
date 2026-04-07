@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Source_Serif_4, Inter } from "next/font/google";
 import "./globals.css";
 import { TabBar } from "@/components/TabBar";
+import { SessionWrapper } from "@/components/SessionWrapper";
 
 const sourceSerif = Source_Serif_4({
   variable: "--font-source-serif",
@@ -32,8 +33,10 @@ export default function RootLayout({
       className={`${sourceSerif.variable} ${inter.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-parchment text-text-primary">
-        <main className="flex-1 pb-16">{children}</main>
-        <TabBar />
+        <SessionWrapper>
+          <main className="flex-1 pb-16">{children}</main>
+          <TabBar />
+        </SessionWrapper>
       </body>
     </html>
   );

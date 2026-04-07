@@ -105,7 +105,11 @@ db.pragma("journal_mode = WAL");
 
 console.log("Creating tables...");
 db.exec(`
+  DROP TABLE IF EXISTS reading_position;
+  DROP TABLE IF EXISTS reading_progress;
   DROP TABLE IF EXISTS favorites;
+  DROP TABLE IF EXISTS accounts;
+  DROP TABLE IF EXISTS users;
   DROP TABLE IF EXISTS verses_fts;
   DROP TABLE IF EXISTS verses;
   DROP TABLE IF EXISTS books;
@@ -128,10 +132,61 @@ db.exec(`
   );
   CREATE INDEX idx_verses_book_chapter ON verses(book_number, chapter);
 
+  -- Auth tables
+  CREATE TABLE users (
+    id TEXT PRIMARY KEY,
+    name TEXT,
+    email TEXT UNIQUE,
+    email_verified TEXT,
+    image TEXT,
+    password_hash TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE accounts (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    type TEXT NOT NULL,
+    provider TEXT NOT NULL,
+    provider_account_id TEXT NOT NULL,
+    access_token TEXT,
+    refresh_token TEXT,
+    expires_at INTEGER,
+    token_type TEXT,
+    scope TEXT,
+    id_token TEXT,
+    UNIQUE(provider, provider_account_id)
+  );
+  CREATE INDEX idx_accounts_user ON accounts(user_id);
+
+  -- Favorites (per-user)
   CREATE TABLE favorites (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    verse_id INTEGER NOT NULL UNIQUE REFERENCES verses(id),
-    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    verse_id INTEGER NOT NULL REFERENCES verses(id),
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(user_id, verse_id)
+  );
+  CREATE INDEX idx_favorites_user ON favorites(user_id);
+
+  -- Reading progress
+  CREATE TABLE reading_progress (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    book_number INTEGER NOT NULL REFERENCES books(number),
+    chapter INTEGER NOT NULL,
+    completed_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(user_id, book_number, chapter)
+  );
+  CREATE INDEX idx_reading_progress_user_book ON reading_progress(user_id, book_number);
+
+  CREATE TABLE reading_position (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id TEXT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+    book_number INTEGER NOT NULL REFERENCES books(number),
+    chapter INTEGER NOT NULL,
+    verse INTEGER NOT NULL DEFAULT 1,
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 `);
 

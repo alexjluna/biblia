@@ -34,3 +34,33 @@ export interface SearchResult {
   verse: number;
   text: string;
 }
+
+// Reading progress types
+
+export interface ReadingProgress {
+  bookNumber: number;
+  readChapters: number[];
+}
+
+export interface BookProgress {
+  bookNumber: number;
+  bookName: string;
+  chaptersCount: number;
+  chaptersRead: number;
+  completed: boolean;
+}
+
+export interface OverallProgress {
+  totalChapters: number;
+  chaptersRead: number;
+  percentage: number;
+  bookProgress: BookProgress[];
+}
+
+export interface ReadingPosition {
+  bookNumber: number;
+  bookName: string;
+  chapter: number;
+  verse: number;
+  updatedAt: string;
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { Verse } from "@/lib/types";
 import { FavoriteButton } from "./FavoriteButton";
 import { ShareButton } from "./ShareButton";
@@ -9,17 +9,33 @@ interface VerseListProps {
   verses: Verse[];
   bookName: string;
   favoriteVerseIds: number[];
+  savedVerse?: number;
 }
 
 export function VerseList({
   verses,
   bookName,
   favoriteVerseIds,
+  savedVerse,
 }: VerseListProps) {
   const [selectedVerseId, setSelectedVerseId] = useState<number | null>(null);
   const [favIds, setFavIds] = useState<Set<number>>(
     new Set(favoriteVerseIds)
   );
+  const [bookmarkedVerse, setBookmarkedVerse] = useState<number | null>(
+    savedVerse ?? null
+  );
+  const [bookmarkSaving, setBookmarkSaving] = useState(false);
+  const scrollRef = useRef<HTMLSpanElement>(null);
+
+  // Auto-scroll to saved verse on mount
+  useEffect(() => {
+    if (savedVerse && savedVerse > 1 && scrollRef.current) {
+      setTimeout(() => {
+        scrollRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 300);
+    }
+  }, [savedVerse]);
 
   const handleToggleFavorite = (verseId: number, isFav: boolean) => {
     setFavIds((prev) => {
@@ -33,20 +49,52 @@ export function VerseList({
     });
   };
 
+  const handleBookmark = async (verse: Verse) => {
+    if (bookmarkSaving) return;
+    setBookmarkSaving(true);
+
+    try {
+      await fetch("/api/reading-position", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bookNumber: verse.book_number,
+          chapter: verse.chapter,
+          verse: verse.verse,
+        }),
+      });
+      setBookmarkedVerse(verse.verse);
+      setSelectedVerseId(null);
+    } catch {
+      // silently fail
+    } finally {
+      setBookmarkSaving(false);
+    }
+  };
+
   return (
     <article className="font-[family-name:var(--font-source-serif)] text-lg leading-[1.8] text-text-primary">
       {verses.map((v) => {
         const isSelected = selectedVerseId === v.id;
         const isFav = favIds.has(v.id);
+        const isBookmarked = bookmarkedVerse === v.verse;
 
         return (
-          <span key={v.id} className="relative inline">
+          <span
+            key={v.id}
+            className="relative inline"
+            ref={savedVerse === v.verse ? scrollRef : undefined}
+          >
             <span
               onClick={() =>
                 setSelectedVerseId(isSelected ? null : v.id)
               }
               className={`cursor-pointer rounded transition-colors ${
-                isSelected ? "bg-accent/10" : "hover:bg-accent/5"
+                isBookmarked
+                  ? "bg-accent/15 border-b-2 border-accent/40"
+                  : isSelected
+                    ? "bg-accent/10"
+                    : "hover:bg-accent/5"
               }`}
             >
               {isFav && (
@@ -57,6 +105,14 @@ export function VerseList({
               </sup>
               {v.text}{" "}
             </span>
+
+            {isBookmarked && !isSelected && (
+              <span className="inline-flex items-center align-middle ml-0.5">
+                <svg className="w-3.5 h-3.5 text-accent" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
+                </svg>
+              </span>
+            )}
 
             {isSelected && (
               <span className="inline-flex items-center gap-1 align-middle ml-1">
@@ -71,6 +127,33 @@ export function VerseList({
                   chapter={v.chapter}
                   verse={v.verse}
                 />
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleBookmark(v);
+                  }}
+                  disabled={bookmarkSaving}
+                  className={`inline-flex items-center justify-center w-8 h-8 rounded-full transition-all ${
+                    isBookmarked
+                      ? "text-accent scale-110"
+                      : "text-text-secondary hover:text-accent"
+                  } ${bookmarkSaving ? "opacity-50" : ""}`}
+                  title="Dejé aquí"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill={isBookmarked ? "currentColor" : "none"}
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z"
+                    />
+                  </svg>
+                </button>
               </span>
             )}
           </span>

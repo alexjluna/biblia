@@ -1,7 +1,7 @@
 import { getDb } from "../db";
 import type { Favorite } from "../types";
 
-export function getFavorites(): Favorite[] {
+export function getFavorites(userId: string): Favorite[] {
   return getDb()
     .prepare(
       `SELECT f.id, f.verse_id, f.created_at,
@@ -9,39 +9,40 @@ export function getFavorites(): Favorite[] {
        FROM favorites f
        JOIN verses v ON f.verse_id = v.id
        JOIN books b ON v.book_number = b.number
+       WHERE f.user_id = ?
        ORDER BY f.created_at DESC`
     )
-    .all() as Favorite[];
+    .all(userId) as Favorite[];
 }
 
-export function addFavorite(verseId: number): { id: number } | null {
+export function addFavorite(userId: string, verseId: number): { id: number } | null {
   try {
     const result = getDb()
-      .prepare("INSERT INTO favorites (verse_id) VALUES (?)")
-      .run(verseId);
+      .prepare("INSERT INTO favorites (user_id, verse_id) VALUES (?, ?)")
+      .run(userId, verseId);
     return { id: Number(result.lastInsertRowid) };
   } catch {
-    return null; // Already exists (UNIQUE constraint)
+    return null; // Already exists (UNIQUE constraint on user_id, verse_id)
   }
 }
 
-export function removeFavorite(id: number): boolean {
+export function removeFavorite(userId: string, id: number): boolean {
   const result = getDb()
-    .prepare("DELETE FROM favorites WHERE id = ?")
-    .run(id);
+    .prepare("DELETE FROM favorites WHERE id = ? AND user_id = ?")
+    .run(id, userId);
   return result.changes > 0;
 }
 
-export function isFavorite(verseId: number): boolean {
+export function isFavorite(userId: string, verseId: number): boolean {
   const row = getDb()
-    .prepare("SELECT 1 FROM favorites WHERE verse_id = ?")
-    .get(verseId);
+    .prepare("SELECT 1 FROM favorites WHERE user_id = ? AND verse_id = ?")
+    .get(userId, verseId);
   return !!row;
 }
 
-export function getFavoriteVerseIds(): Set<number> {
+export function getFavoriteVerseIds(userId: string): Set<number> {
   const rows = getDb()
-    .prepare("SELECT verse_id FROM favorites")
-    .all() as { verse_id: number }[];
+    .prepare("SELECT verse_id FROM favorites WHERE user_id = ?")
+    .all(userId) as { verse_id: number }[];
   return new Set(rows.map((r) => r.verse_id));
 }
