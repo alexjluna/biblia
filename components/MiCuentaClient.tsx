@@ -109,7 +109,13 @@ export function MiCuentaClient({ user, stats, activity, notifications, ranking, 
             </p>
           </div>
         </div>
-        <div className="flex gap-2 mt-4">
+        <div className="flex flex-wrap gap-2 mt-4">
+          <Link
+            href="/mis-notas"
+            className="px-3 py-1.5 rounded-lg border border-separator text-xs text-text-secondary hover:bg-gray-50"
+          >
+            Mis notas
+          </Link>
           {user.hasPassword && (
             <Link
               href="/recuperar"

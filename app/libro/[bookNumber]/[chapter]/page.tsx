@@ -9,6 +9,7 @@ import {
   getReadingPosition,
 } from "@/lib/queries/reading-progress";
 import { getDiscussionSummariesForChapter } from "@/lib/queries/discussions";
+import { getNotedVerseIds } from "@/lib/queries/notes";
 import { VerseList } from "@/components/VerseList";
 import { ChapterNav } from "@/components/ChapterNav";
 import { MarkReadButton } from "@/components/MarkReadButton";
@@ -62,6 +63,13 @@ export default async function ChapterPage({ params, searchParams }: Props) {
   const discussionMap = getDiscussionSummariesForChapter(bookNum, chapter);
   const discussionSummaries = Object.fromEntries(discussionMap);
 
+  // Notes for this chapter (only if logged in)
+  let notedVerseIds: number[] = [];
+  if (userId) {
+    const noted = getNotedVerseIds(userId, bookNum, chapter);
+    notedVerseIds = Array.from(noted);
+  }
+
   // Get prev/next book for navigation
   const prevBook = bookNum > 1 ? getBookByNumber(bookNum - 1) : null;
   const nextBook = bookNum < 66 ? getBookByNumber(bookNum + 1) : null;
@@ -88,6 +96,7 @@ export default async function ChapterPage({ params, searchParams }: Props) {
         scrollToVerse={scrollToVerse}
         isLoggedIn={!!userId}
         discussionSummaries={discussionSummaries}
+        notedVerseIds={notedVerseIds}
       />
 
       {userId && (

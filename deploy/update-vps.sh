@@ -17,6 +17,8 @@ npm install
 npx tsx scripts/migrate-auth.ts
 npx tsx scripts/migrate-discussions.ts
 npx tsx scripts/migrate-ranking.ts
+npx tsx scripts/migrate-notes.ts
+npx tsx scripts/migrate-collections.ts
 
 npm run build
 pm2 restart biblia

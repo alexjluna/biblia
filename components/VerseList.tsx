@@ -6,6 +6,7 @@ import { FavoriteButton } from "./FavoriteButton";
 import { ShareButton } from "./ShareButton";
 import { DiscussButton } from "./DiscussButton";
 import { DiscussionSheet } from "./DiscussionSheet";
+import { NoteSheet } from "./NoteSheet";
 
 interface VerseListProps {
   verses: Verse[];
@@ -15,6 +16,7 @@ interface VerseListProps {
   scrollToVerse?: number;
   isLoggedIn?: boolean;
   discussionSummaries?: Record<number, DiscussionSummary>;
+  notedVerseIds?: number[];
 }
 
 export function VerseList({
@@ -25,6 +27,7 @@ export function VerseList({
   scrollToVerse,
   isLoggedIn = false,
   discussionSummaries = {},
+  notedVerseIds = [],
 }: VerseListProps) {
   const [selectedVerseId, setSelectedVerseId] = useState<number | null>(null);
   const [favIds, setFavIds] = useState<Set<number>>(
@@ -35,6 +38,8 @@ export function VerseList({
   );
   const [bookmarkSaving, setBookmarkSaving] = useState(false);
   const [discussionVerseId, setDiscussionVerseId] = useState<number | null>(null);
+  const [noteVerseId, setNoteVerseId] = useState<number | null>(null);
+  const [notedIds, setNotedIds] = useState<Set<number>>(new Set(notedVerseIds));
   const scrollRef = useRef<HTMLSpanElement>(null);
   const scrollToRef = useRef<HTMLSpanElement>(null);
 
@@ -93,6 +98,7 @@ export function VerseList({
           const isBookmarked = bookmarkedVerse === v.verse;
           const discussion = discussionSummaries[v.id];
           const hasDiscussion = isLoggedIn && !!discussion;
+          const hasNote = isLoggedIn && notedIds.has(v.id);
 
           return (
             <span
@@ -126,6 +132,9 @@ export function VerseList({
                 {hasDiscussion && !isFav && (
                   <span className="inline-block w-1.5 h-1.5 rounded-full bg-discussion align-super mr-0.5" />
                 )}
+                {hasNote && !isFav && !hasDiscussion && (
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-600 align-super mr-0.5" />
+                )}
                 <sup className="text-xs font-sans font-bold text-verse-num mr-1">
                   {v.verse}
                 </sup>
@@ -148,7 +157,31 @@ export function VerseList({
                     initialIsFavorite={isFav}
                     onToggle={(isFav) => handleToggleFavorite(v.id, isFav)}
                   />
-                  {/* 2. Dejé aquí */}
+                  {/* 2. Nota personal */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setNoteVerseId(v.id);
+                      setSelectedVerseId(null);
+                    }}
+                    className={`inline-flex items-center justify-center w-8 h-8 rounded-full cursor-pointer transition-all hover:scale-110 active:scale-95 ${
+                      hasNote
+                        ? "text-amber-600"
+                        : "text-text-secondary hover:text-amber-600"
+                    }`}
+                    title="Nota personal"
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill={hasNote ? "currentColor" : "none"}
+                      viewBox="0 0 24 24"
+                      strokeWidth={1.5}
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
+                    </svg>
+                  </button>
+                  {/* 3. Dejé aquí */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -176,7 +209,7 @@ export function VerseList({
                       />
                     </svg>
                   </button>
-                  {/* 3. Discutir */}
+                  {/* 4. Discutir */}
                   <DiscussButton
                     messageCount={discussion?.messageCount ?? 0}
                     onOpen={() => {
@@ -184,7 +217,7 @@ export function VerseList({
                       setSelectedVerseId(null);
                     }}
                   />
-                  {/* 4. Compartir */}
+                  {/* 5. Compartir */}
                   <ShareButton
                     text={v.text}
                     bookName={bookName}
@@ -197,6 +230,17 @@ export function VerseList({
           );
         })}
       </article>
+
+      {noteVerseId !== null && (
+        <NoteSheet
+          verse={verses.find((v) => v.id === noteVerseId)!}
+          bookName={bookName}
+          onClose={() => {
+            setNotedIds((prev) => new Set([...prev, noteVerseId]));
+            setNoteVerseId(null);
+          }}
+        />
+      )}
 
       {discussionVerseId !== null && (
         <DiscussionSheet

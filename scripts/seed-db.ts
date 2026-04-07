@@ -105,6 +105,9 @@ db.pragma("journal_mode = WAL");
 
 console.log("Creating tables...");
 db.exec(`
+  DROP TABLE IF EXISTS collection_verses;
+  DROP TABLE IF EXISTS collections;
+  DROP TABLE IF EXISTS verse_notes;
   DROP TABLE IF EXISTS notifications;
   DROP TABLE IF EXISTS discussion_reads;
   DROP TABLE IF EXISTS discussion_likes;
@@ -212,6 +215,36 @@ db.exec(`
     verse INTEGER NOT NULL DEFAULT 1,
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
+
+  -- Collections
+  CREATE TABLE collections (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(user_id, name)
+  );
+  CREATE INDEX idx_collections_user ON collections(user_id);
+
+  CREATE TABLE collection_verses (
+    collection_id INTEGER NOT NULL REFERENCES collections(id) ON DELETE CASCADE,
+    favorite_id INTEGER NOT NULL REFERENCES favorites(id) ON DELETE CASCADE,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (collection_id, favorite_id)
+  );
+
+  -- Notes
+  CREATE TABLE verse_notes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    verse_id INTEGER NOT NULL REFERENCES verses(id),
+    content TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(user_id, verse_id)
+  );
+  CREATE INDEX idx_notes_user ON verse_notes(user_id);
+  CREATE INDEX idx_notes_verse ON verse_notes(verse_id);
 
   -- Discussions
   CREATE TABLE discussions (

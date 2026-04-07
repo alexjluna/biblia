@@ -9,7 +9,9 @@ import {
 } from "@/lib/queries/reading-progress";
 import { BookGrid } from "@/components/BookGrid";
 import { ContinueReadingCard } from "@/components/ContinueReadingCard";
+import { DailyVerseCard } from "@/components/DailyVerseCard";
 import { UserMenu } from "@/components/UserMenu";
+import { getDailyVerse } from "@/lib/daily-verse";
 
 export default async function HomePage() {
   const books = getBooks();
@@ -74,6 +76,8 @@ export default async function HomePage() {
         </a>
         <p className="text-sm text-text-secondary mt-1">Reina Valera 1960</p>
       </header>
+
+      <DailyVerseCard verse={getDailyVerse()} />
 
       {continueReading && (
         <ContinueReadingCard
