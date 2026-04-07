@@ -16,72 +16,94 @@ export function ChapterGrid({
   const chapters = Array.from({ length: totalChapters }, (_, i) => i + 1);
   const readCount = readChapters?.size ?? 0;
 
+  // Find next unread chapter for the pulsing indicator
+  let nextUnread: number | null = null;
+  if (readCount > 0 && readCount < totalChapters) {
+    for (let i = 1; i <= totalChapters; i++) {
+      if (!readChapters?.has(i)) {
+        nextUnread = i;
+        break;
+      }
+    }
+  }
+
+  // Split chapters into rows of 5 for offset pattern
+  const rows: number[][] = [];
+  for (let i = 0; i < chapters.length; i += 5) {
+    rows.push(chapters.slice(i, i + 5));
+  }
+
   return (
     <div>
-      <div className="mb-6">
-        <Link
-          href="/"
-          className="text-sm text-accent hover:underline"
-        >
+      {/* Header with watermark */}
+      <div className="mb-6 relative">
+        <Link href="/" className="text-sm text-accent hover:underline">
           &larr; Todos los libros
         </Link>
-        <h1 className="text-2xl font-semibold mt-2 font-[family-name:var(--font-source-serif)]">
-          {bookName}
-        </h1>
+        <div className="relative mt-2">
+          {/* Watermark abbreviation */}
+          <span className="absolute -top-2 right-0 text-[72px] font-bold text-accent/[0.04] font-[family-name:var(--font-source-serif)] select-none pointer-events-none leading-none">
+            {bookName.slice(0, 3)}
+          </span>
+          <h1 className="text-3xl font-semibold font-[family-name:var(--font-source-serif)] relative">
+            {bookName}
+          </h1>
+        </div>
         <p className="text-sm text-text-secondary mt-1">
           {totalChapters} capítulos
         </p>
+
+        {/* Segmented progress bar */}
         {readCount > 0 && (
           <div className="mt-3">
-            <div className="flex items-center justify-between text-xs text-text-secondary mb-1">
-              <span>
-                {readCount} de {totalChapters} leídos
-              </span>
+            <div className="flex items-center justify-between text-xs text-text-secondary mb-1.5">
+              <span>{readCount} de {totalChapters} leídos</span>
               <span>{Math.round((readCount / totalChapters) * 100)}%</span>
             </div>
-            <div className="w-full h-1.5 bg-separator rounded-full overflow-hidden">
-              <div
-                className="h-full bg-accent rounded-full transition-all duration-500"
-                style={{
-                  width: `${(readCount / totalChapters) * 100}%`,
-                }}
-              />
+            <div className="flex gap-[2px]">
+              {chapters.map((ch) => (
+                <div
+                  key={ch}
+                  className={`flex-1 h-2 first:rounded-l-full last:rounded-r-full transition-colors ${
+                    readChapters?.has(ch) ? "bg-accent" : "bg-separator/50"
+                  }`}
+                />
+              ))}
             </div>
           </div>
         )}
       </div>
-      <div className="grid grid-cols-5 sm:grid-cols-8 gap-2">
-        {chapters.map((ch) => {
-          const isRead = readChapters?.has(ch) ?? false;
-          return (
-            <Link
-              key={ch}
-              href={`/libro/${bookNumber}/${ch}`}
-              className={`relative flex items-center justify-center w-full aspect-square rounded-lg border text-base font-medium transition-colors ${
-                isRead
-                  ? "bg-accent/10 border-accent/30 text-accent"
-                  : "bg-white border-separator text-text-primary hover:border-accent hover:text-accent hover:bg-accent/5"
-              }`}
-            >
-              {ch}
-              {isRead && (
-                <span className="absolute top-0.5 right-0.5">
-                  <svg
-                    className="w-2.5 h-2.5 text-accent"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </span>
-              )}
-            </Link>
-          );
-        })}
+
+      {/* Stepping stones with offset rows */}
+      <div className="space-y-2">
+        {rows.map((row, rowIndex) => (
+          <div
+            key={rowIndex}
+            className="flex gap-2 justify-start"
+            style={rowIndex % 2 === 1 ? { paddingLeft: "calc(50% / 5 + 4px)" } : undefined}
+          >
+            {row.map((ch) => {
+              const isRead = readChapters?.has(ch) ?? false;
+              const isNext = ch === nextUnread;
+
+              return (
+                <Link
+                  key={ch}
+                  href={`/libro/${bookNumber}/${ch}`}
+                  className={`flex items-center justify-center w-12 h-12 rounded-2xl text-sm font-semibold transition-all duration-200 ${
+                    isRead
+                      ? "bg-accent text-white shadow-[0_2px_6px_rgba(124,92,62,0.3)] scale-105"
+                      : isNext
+                        ? "bg-white border-2 border-accent text-accent ring-4 ring-accent/10 animate-pulse"
+                        : "bg-white border border-separator text-text-secondary shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:border-accent/30 hover:text-accent"
+                  }`}
+                >
+                  {ch}
+                </Link>
+              );
+            })}
+          </div>
+        ))}
       </div>
     </div>
   );
