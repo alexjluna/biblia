@@ -69,9 +69,9 @@ export default async function HomePage() {
         <div className="absolute right-0 top-0">
           <UserMenu />
         </div>
-        <h1 className="text-3xl font-bold font-[family-name:var(--font-source-serif)] text-text-primary">
+        <a href="/" className="text-3xl font-bold font-[family-name:var(--font-source-serif)] text-text-primary hover:text-accent transition-colors">
           Biblia
-        </h1>
+        </a>
         <p className="text-sm text-text-secondary mt-1">Reina Valera 1960</p>
       </header>
 

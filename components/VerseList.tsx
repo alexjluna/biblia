@@ -10,6 +10,7 @@ interface VerseListProps {
   bookName: string;
   favoriteVerseIds: number[];
   savedVerse?: number;
+  isLoggedIn?: boolean;
 }
 
 export function VerseList({
@@ -17,6 +18,7 @@ export function VerseList({
   bookName,
   favoriteVerseIds,
   savedVerse,
+  isLoggedIn = false,
 }: VerseListProps) {
   const [selectedVerseId, setSelectedVerseId] = useState<number | null>(null);
   const [favIds, setFavIds] = useState<Set<number>>(
@@ -114,7 +116,7 @@ export function VerseList({
               </span>
             )}
 
-            {isSelected && (
+            {isSelected && isLoggedIn && (
               <span className="inline-flex items-center gap-1 align-middle ml-1">
                 <FavoriteButton
                   verseId={v.id}

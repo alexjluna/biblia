@@ -3,16 +3,16 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
 export default function RegistroPage() {
-  const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [website, setWebsite] = useState(""); // honeypot
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,38 +33,68 @@ export default function RegistroPage() {
     const res = await fetch("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password }),
+      body: JSON.stringify({ name, email, password, website }),
     });
 
+    const data = await res.json();
+
     if (!res.ok) {
-      const data = await res.json();
       setError(data.error || "Error al registrar");
       setLoading(false);
       return;
     }
 
-    // Auto-login after registration
-    const result = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
-
-    if (result?.error) {
-      setError("Cuenta creada. Inicia sesión manualmente.");
+    if (data.needsVerification) {
+      setEmailSent(true);
       setLoading(false);
-    } else {
-      router.push("/");
-      router.refresh();
+      return;
     }
   };
+
+  if (emailSent) {
+    return (
+      <div className="max-w-sm mx-auto px-4 py-12">
+        <header className="text-center mb-8">
+          <h1 className="text-3xl font-bold font-[family-name:var(--font-source-serif)] text-text-primary">
+            Biblia
+          </h1>
+          <p className="text-sm text-text-secondary mt-1">Reina Valera 1960</p>
+        </header>
+
+        <div className="bg-white rounded-xl border border-separator p-6 text-center">
+          <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center mx-auto mb-4">
+            <svg className="w-6 h-6 text-accent" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+            </svg>
+          </div>
+          <h2 className="text-lg font-semibold text-text-primary mb-2">
+            Revisa tu correo
+          </h2>
+          <p className="text-sm text-text-secondary mb-1">
+            Hemos enviado un enlace de confirmación a:
+          </p>
+          <p className="text-sm font-medium text-text-primary mb-4">{email}</p>
+          <p className="text-xs text-text-secondary">
+            Haz clic en el enlace del email para activar tu cuenta. El enlace expira en 24 horas.
+          </p>
+        </div>
+
+        <p className="text-center text-sm text-text-secondary mt-4">
+          ¿Ya confirmaste?{" "}
+          <Link href="/login" className="text-accent hover:underline font-medium">
+            Inicia sesión
+          </Link>
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-sm mx-auto px-4 py-12">
       <header className="text-center mb-8">
-        <h1 className="text-3xl font-bold font-[family-name:var(--font-source-serif)] text-text-primary">
+        <a href="/" className="text-3xl font-bold font-[family-name:var(--font-source-serif)] text-text-primary hover:text-accent transition-colors">
           Biblia
-        </h1>
+        </a>
         <p className="text-sm text-text-secondary mt-1">Reina Valera 1960</p>
       </header>
 
@@ -96,6 +126,20 @@ export default function RegistroPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Honeypot field - hidden from users, visible to bots */}
+          <div className="absolute opacity-0 -z-10" aria-hidden="true" tabIndex={-1}>
+            <label htmlFor="website">Website</label>
+            <input
+              id="website"
+              name="website"
+              type="text"
+              value={website}
+              onChange={(e) => setWebsite(e.target.value)}
+              tabIndex={-1}
+              autoComplete="off"
+            />
+          </div>
+
           <div>
             <label htmlFor="name" className="block text-sm font-medium text-text-secondary mb-1">
               Nombre

@@ -77,6 +77,7 @@ export default async function ChapterPage({ params }: Props) {
         bookName={book.name}
         favoriteVerseIds={favoriteVerseIds}
         savedVerse={savedVerse}
+        isLoggedIn={!!userId}
       />
 
       {userId && (

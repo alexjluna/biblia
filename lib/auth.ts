@@ -126,6 +126,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const isValid = await compare(password, user.password_hash as string);
         if (!isValid) return null;
 
+        // Reject unverified email users
+        if (!user.email_verified) {
+          throw new Error("EMAIL_NOT_VERIFIED");
+        }
+
         return {
           id: user.id as string,
           name: user.name as string,
@@ -135,7 +140,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
   ],
-  allowDangerousEmailAccountLinking: true,
   callbacks: {
     jwt({ token, user }) {
       if (user) {

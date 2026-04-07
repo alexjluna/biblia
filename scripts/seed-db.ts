@@ -108,6 +108,8 @@ db.exec(`
   DROP TABLE IF EXISTS reading_position;
   DROP TABLE IF EXISTS reading_progress;
   DROP TABLE IF EXISTS favorites;
+  DROP TABLE IF EXISTS password_reset_tokens;
+  DROP TABLE IF EXISTS verification_tokens;
   DROP TABLE IF EXISTS accounts;
   DROP TABLE IF EXISTS users;
   DROP TABLE IF EXISTS verses_fts;
@@ -140,6 +142,7 @@ db.exec(`
     email_verified TEXT,
     image TEXT,
     password_hash TEXT,
+    role TEXT NOT NULL DEFAULT 'user',
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
@@ -158,6 +161,21 @@ db.exec(`
     UNIQUE(provider, provider_account_id)
   );
   CREATE INDEX idx_accounts_user ON accounts(user_id);
+
+  CREATE TABLE password_reset_tokens (
+    token TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    expires_at TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE verification_tokens (
+    token TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    email TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
 
   -- Favorites (per-user)
   CREATE TABLE favorites (

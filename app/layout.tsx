@@ -34,7 +34,15 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-parchment text-text-primary">
         <SessionWrapper>
-          <main className="flex-1 pb-16">{children}</main>
+          <main className="flex-1 pb-20">{children}</main>
+          <footer className="pb-18 text-center py-3">
+            <a
+              href="/legal"
+              className="text-xs text-text-secondary hover:text-accent transition-colors"
+            >
+              Aviso legal
+            </a>
+          </footer>
           <TabBar />
         </SessionWrapper>
       </body>
