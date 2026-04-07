@@ -3,8 +3,6 @@ import { getDb } from "@/lib/db";
 import { createPasswordResetToken } from "@/lib/queries/password-reset";
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 export async function POST(request: NextRequest) {
   const { email } = await request.json();
 
@@ -26,6 +24,7 @@ export async function POST(request: NextRequest) {
   const resetUrl = `${baseUrl}/reset-password?token=${token}`;
 
   try {
+    const resend = new Resend(process.env.RESEND_API_KEY);
     await resend.emails.send({
       from: process.env.RESEND_FROM_EMAIL || "Biblia <onboarding@resend.dev>",
       to: email,
