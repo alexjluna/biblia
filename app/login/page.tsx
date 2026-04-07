@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const verified = searchParams.get("verified");
@@ -41,14 +41,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="max-w-sm mx-auto px-4 py-12">
-      <header className="text-center mb-8">
-        <a href="/" className="text-3xl font-bold font-[family-name:var(--font-source-serif)] text-text-primary hover:text-accent transition-colors">
-          Biblia
-        </a>
-        <p className="text-sm text-text-secondary mt-1">Reina Valera 1960</p>
-      </header>
-
+    <>
       {verified === "1" && (
         <div className="bg-accent/5 border border-accent/20 rounded-xl p-4 mb-4 text-center">
           <p className="text-sm text-accent font-medium">
@@ -195,6 +188,23 @@ export default function LoginPage() {
           Regístrate
         </Link>
       </p>
+    </>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <div className="max-w-sm mx-auto px-4 py-12">
+      <header className="text-center mb-8">
+        <a href="/" className="text-3xl font-bold font-[family-name:var(--font-source-serif)] text-text-primary hover:text-accent transition-colors">
+          Biblia
+        </a>
+        <p className="text-sm text-text-secondary mt-1">Reina Valera 1960</p>
+      </header>
+
+      <Suspense>
+        <LoginForm />
+      </Suspense>
     </div>
   );
 }
