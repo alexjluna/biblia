@@ -22,6 +22,8 @@ interface Props {
   };
   activity: ActivityItem[];
   notifications: Notification[];
+  ranking: { userRank: number; totalParticipants: number } | null;
+  showInRanking: boolean;
 }
 
 function timeAgo(dateStr: string): string {
@@ -38,7 +40,21 @@ function timeAgo(dateStr: string): string {
   return date.toLocaleDateString("es-ES", { day: "numeric", month: "short" });
 }
 
-export function MiCuentaClient({ user, stats, activity, notifications }: Props) {
+export function MiCuentaClient({ user, stats, activity, notifications, ranking, showInRanking: initialShowInRanking }: Props) {
+  const [rankingVisible, setRankingVisible] = useState(initialShowInRanking);
+  const [rankingToggling, setRankingToggling] = useState(false);
+
+  const toggleRanking = async () => {
+    setRankingToggling(true);
+    const newValue = !rankingVisible;
+    const res = await fetch("/api/ranking/preferences", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ showInRanking: newValue }),
+    });
+    if (res.ok) setRankingVisible(newValue);
+    setRankingToggling(false);
+  };
   const [showDelete, setShowDelete] = useState(false);
   const [confirmText, setConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
@@ -127,6 +143,60 @@ export function MiCuentaClient({ user, stats, activity, notifications }: Props) 
             {stat.total && <p className="text-[10px] text-text-secondary">{stat.total}</p>}
           </div>
         ))}
+      </div>
+
+      {/* Ranking card */}
+      {ranking && (
+        <section className="mb-4">
+          <Link
+            href="/ranking"
+            className="flex items-center gap-3 bg-white rounded-xl border border-separator p-4 hover:border-accent transition-colors group"
+          >
+            <div className="w-10 h-10 rounded-full bg-amber-400/20 flex items-center justify-center flex-shrink-0">
+              <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M18.75 4.236c.982.143 1.954.317 2.916.52A6.003 6.003 0 0016.27 9.728M18.75 4.236V4.5c0 2.108-.966 3.99-2.48 5.228m0 0a6.023 6.023 0 01-2.77.672c-.99 0-1.932-.223-2.77-.672" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <p className="text-2xl font-bold text-accent font-[family-name:var(--font-source-serif)]">
+                #{ranking.userRank}
+              </p>
+              <p className="text-xs text-text-secondary">
+                de {ranking.totalParticipants} lectores
+              </p>
+            </div>
+            <svg
+              className="w-5 h-5 text-accent flex-shrink-0 group-hover:translate-x-0.5 transition-transform"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+            </svg>
+          </Link>
+        </section>
+      )}
+
+      {/* Ranking toggle */}
+      <div className="flex items-center justify-between bg-white rounded-xl border border-separator p-4 mb-4">
+        <div>
+          <p className="text-sm font-medium text-text-primary">Aparecer en el ranking</p>
+          <p className="text-xs text-text-secondary">Otros lectores verán tu progreso</p>
+        </div>
+        <button
+          onClick={toggleRanking}
+          disabled={rankingToggling}
+          className={`relative w-11 h-6 rounded-full transition-colors ${
+            rankingVisible ? "bg-accent" : "bg-separator"
+          } ${rankingToggling ? "opacity-50" : ""}`}
+        >
+          <span
+            className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
+              rankingVisible ? "translate-x-5" : ""
+            }`}
+          />
+        </button>
       </div>
 
       {/* Notifications */}

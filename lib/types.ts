@@ -65,6 +65,17 @@ export interface ReadingPosition {
   updatedAt: string;
 }
 
+// Ranking types
+
+export interface RankingEntry {
+  rank: number;
+  userId: string;
+  name: string;
+  image: string | null;
+  chaptersRead: number;
+  percentage: number;
+}
+
 // Discussion types
 
 export interface Discussion {

@@ -148,6 +148,7 @@ db.exec(`
     image TEXT,
     password_hash TEXT,
     role TEXT NOT NULL DEFAULT 'user',
+    show_in_ranking INTEGER NOT NULL DEFAULT 1,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
