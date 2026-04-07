@@ -105,6 +105,9 @@ db.pragma("journal_mode = WAL");
 
 console.log("Creating tables...");
 db.exec(`
+  DROP TABLE IF EXISTS prayer_support;
+  DROP TABLE IF EXISTS prayer_requests;
+  DROP TABLE IF EXISTS reading_streaks;
   DROP TABLE IF EXISTS collection_verses;
   DROP TABLE IF EXISTS collections;
   DROP TABLE IF EXISTS verse_notes;
@@ -245,6 +248,36 @@ db.exec(`
   );
   CREATE INDEX idx_notes_user ON verse_notes(user_id);
   CREATE INDEX idx_notes_verse ON verse_notes(verse_id);
+
+  -- Streaks
+  CREATE TABLE reading_streaks (
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    date TEXT NOT NULL,
+    chapters_count INTEGER NOT NULL DEFAULT 1,
+    PRIMARY KEY (user_id, date)
+  );
+  CREATE INDEX idx_streaks_user_date ON reading_streaks(user_id, date DESC);
+
+  -- Prayer requests
+  CREATE TABLE prayer_requests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    verse_id INTEGER REFERENCES verses(id),
+    is_anonymous INTEGER NOT NULL DEFAULT 1,
+    prayer_count INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    expires_at TEXT NOT NULL DEFAULT (datetime('now', '+30 days'))
+  );
+  CREATE INDEX idx_prayers_user ON prayer_requests(user_id);
+  CREATE INDEX idx_prayers_expires ON prayer_requests(expires_at);
+
+  CREATE TABLE prayer_support (
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    request_id INTEGER NOT NULL REFERENCES prayer_requests(id) ON DELETE CASCADE,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (user_id, request_id)
+  );
 
   -- Discussions
   CREATE TABLE discussions (

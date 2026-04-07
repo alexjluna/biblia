@@ -1,5 +1,6 @@
 import { searchVerses } from "@/lib/queries/verses";
 import { SearchBar } from "@/components/SearchBar";
+import { getAllTopics } from "@/lib/topics";
 import Link from "next/link";
 
 interface Props {
@@ -75,23 +76,22 @@ export default async function BuscarPage({ searchParams }: Props) {
       )}
 
       {!query && (
-        <div className="text-center py-12">
-          <svg
-            className="w-12 h-12 mx-auto text-text-secondary/30 mb-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={1}
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
-            />
-          </svg>
-          <p className="text-text-secondary">
-            Busca por palabra, frase o referencia
-          </p>
+        <div className="mt-6">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-text-secondary mb-3">
+            Versículos por tema
+          </h2>
+          <div className="grid grid-cols-2 gap-2">
+            {getAllTopics().map((topic) => (
+              <Link
+                key={topic.slug}
+                href={`/temas/${topic.slug}`}
+                className="flex items-center gap-2 bg-white rounded-xl border border-separator px-3 py-3 hover:border-accent transition-colors text-sm"
+              >
+                <span className="text-lg">{topic.icon}</span>
+                <span className="text-text-primary font-medium truncate">{topic.name}</span>
+              </Link>
+            ))}
+          </div>
         </div>
       )}
     </div>

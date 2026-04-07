@@ -19,6 +19,8 @@ npx tsx scripts/migrate-discussions.ts
 npx tsx scripts/migrate-ranking.ts
 npx tsx scripts/migrate-notes.ts
 npx tsx scripts/migrate-collections.ts
+npx tsx scripts/migrate-streaks.ts
+npx tsx scripts/migrate-prayers.ts
 
 npm run build
 pm2 restart biblia
