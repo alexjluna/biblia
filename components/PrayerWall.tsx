@@ -185,7 +185,7 @@ export function PrayerWall({ initialRequests, isLoggedIn }: Props) {
               )}
 
               <div className="flex items-center justify-between mt-3">
-                {isLoggedIn && !req.isOwn ? (
+                {isLoggedIn ? (
                   <button
                     onClick={() => handlePray(req.id)}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer hover:scale-105 active:scale-95 ${
@@ -197,13 +197,13 @@ export function PrayerWall({ initialRequests, isLoggedIn }: Props) {
                     🙏 {req.isPraying ? "Orando" : "Orar"}
                   </button>
                 ) : (
-                  <span />
-                )}
-                {req.prayerCount > 0 && (
-                  <span className="text-xs text-text-secondary">
-                    {req.prayerCount} {req.prayerCount === 1 ? "persona orando" : "personas orando"}
+                  <span className="flex items-center gap-1 text-xs text-text-secondary">
+                    🙏
                   </span>
                 )}
+                <span className="text-xs text-text-secondary">
+                  {req.prayerCount} {req.prayerCount === 1 ? "persona orando" : "personas orando"}
+                </span>
               </div>
             </div>
           ))}

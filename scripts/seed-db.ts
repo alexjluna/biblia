@@ -107,7 +107,6 @@ console.log("Creating tables...");
 db.exec(`
   DROP TABLE IF EXISTS prayer_support;
   DROP TABLE IF EXISTS prayer_requests;
-  DROP TABLE IF EXISTS reading_streaks;
   DROP TABLE IF EXISTS collection_verses;
   DROP TABLE IF EXISTS collections;
   DROP TABLE IF EXISTS verse_notes;
@@ -248,15 +247,6 @@ db.exec(`
   );
   CREATE INDEX idx_notes_user ON verse_notes(user_id);
   CREATE INDEX idx_notes_verse ON verse_notes(verse_id);
-
-  -- Streaks
-  CREATE TABLE reading_streaks (
-    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    date TEXT NOT NULL,
-    chapters_count INTEGER NOT NULL DEFAULT 1,
-    PRIMARY KEY (user_id, date)
-  );
-  CREATE INDEX idx_streaks_user_date ON reading_streaks(user_id, date DESC);
 
   -- Prayer requests
   CREATE TABLE prayer_requests (

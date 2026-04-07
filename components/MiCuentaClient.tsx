@@ -116,6 +116,12 @@ export function MiCuentaClient({ user, stats, activity, notifications, ranking, 
           >
             Mis notas
           </Link>
+          <Link
+            href="/oracion"
+            className="px-3 py-1.5 rounded-lg border border-separator text-xs text-text-secondary hover:bg-gray-50"
+          >
+            Muro de Oración
+          </Link>
           {user.hasPassword && (
             <Link
               href="/recuperar"

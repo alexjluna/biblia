@@ -6,7 +6,6 @@ import {
   markChapterRead,
 } from "@/lib/queries/reading-progress";
 import { getBookByNumber } from "@/lib/queries/books";
-import { recordReadingDay } from "@/lib/queries/streaks";
 
 export async function GET(request: NextRequest) {
   const session = await auth();
@@ -60,10 +59,6 @@ export async function POST(request: NextRequest) {
   }
 
   const result = markChapterRead(session.user.id, bookNumber, chapter);
-
-  // Record reading day for streak tracking
-  recordReadingDay(session.user.id);
-
   if (!result) {
     return NextResponse.json({ error: "Ya marcado como leído" }, { status: 409 });
   }

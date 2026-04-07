@@ -10,10 +10,8 @@ import {
 import { BookGrid } from "@/components/BookGrid";
 import { ContinueReadingCard } from "@/components/ContinueReadingCard";
 import { DailyVerseCard } from "@/components/DailyVerseCard";
-import { StreakCard } from "@/components/StreakCard";
 import { UserMenu } from "@/components/UserMenu";
 import { getDailyVerse } from "@/lib/daily-verse";
-import { getCurrentStreak, getWeekDays } from "@/lib/queries/streaks";
 
 export default async function HomePage() {
   const books = getBooks();
@@ -32,13 +30,9 @@ export default async function HomePage() {
     chaptersRead: number;
     totalChapters: number;
   } | null = null;
-  let streak = 0;
-  let weekDays: boolean[] = [false, false, false, false, false, false, false];
 
   if (userId) {
     progressMap = getReadChapterCounts(userId);
-    streak = getCurrentStreak(userId);
-    weekDays = getWeekDays(userId);
 
     // Find continue reading data
     const position = getReadingPosition(userId);
@@ -83,9 +77,21 @@ export default async function HomePage() {
         <p className="text-sm text-text-secondary mt-1">Reina Valera 1960</p>
       </header>
 
-      {userId && <StreakCard currentStreak={streak} weekDays={weekDays} />}
-
       <DailyVerseCard verse={getDailyVerse()} />
+
+      <a
+        href="/oracion"
+        className="flex items-center gap-3 bg-white rounded-xl border border-separator p-4 mb-4 hover:border-accent transition-colors group"
+      >
+        <span className="text-2xl">🙏</span>
+        <div className="flex-1">
+          <p className="text-sm font-medium text-text-primary">Muro de Oración</p>
+          <p className="text-xs text-text-secondary">Comparte tus peticiones y ora por otros</p>
+        </div>
+        <svg className="w-5 h-5 text-accent flex-shrink-0 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+        </svg>
+      </a>
 
       {continueReading && (
         <ContinueReadingCard
