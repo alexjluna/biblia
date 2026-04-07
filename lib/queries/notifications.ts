@@ -77,3 +77,15 @@ export function markAllRead(userId: string): void {
     .prepare("UPDATE notifications SET is_read = 1 WHERE user_id = ? AND is_read = 0")
     .run(userId);
 }
+
+/**
+ * Clean up old data to prevent infinite growth.
+ * - Notifications older than 90 days (read ones)
+ * - discussion_reads older than 90 days
+ * Call periodically (e.g. on app startup or via cron).
+ */
+export function cleanupOldData(): void {
+  const db = getDb();
+  db.prepare("DELETE FROM notifications WHERE is_read = 1 AND created_at < datetime('now', '-60 days')").run();
+  db.prepare("DELETE FROM discussion_reads WHERE last_read_at < datetime('now', '-60 days')").run();
+}

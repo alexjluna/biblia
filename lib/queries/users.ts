@@ -121,7 +121,7 @@ export function getUserActivity(userId: string, limit: number = 20): ActivityIte
     SELECT 'read' as type, b.number as bookNumber, b.name as bookName, rp.chapter, NULL as verse, NULL as detail, rp.completed_at as createdAt
     FROM reading_progress rp
     JOIN books b ON rp.book_number = b.number
-    WHERE rp.user_id = ?
+    WHERE rp.user_id = ? AND rp.completed_at > datetime('now', '-60 days')
 
     UNION ALL
 
@@ -129,7 +129,7 @@ export function getUserActivity(userId: string, limit: number = 20): ActivityIte
     FROM favorites f
     JOIN verses v ON f.verse_id = v.id
     JOIN books b ON v.book_number = b.number
-    WHERE f.user_id = ?
+    WHERE f.user_id = ? AND f.created_at > datetime('now', '-60 days')
 
     UNION ALL
 
@@ -138,7 +138,7 @@ export function getUserActivity(userId: string, limit: number = 20): ActivityIte
     JOIN discussions d ON dm.discussion_id = d.id
     JOIN verses v ON d.verse_id = v.id
     JOIN books b ON v.book_number = b.number
-    WHERE dm.user_id = ? AND dm.is_deleted = 0
+    WHERE dm.user_id = ? AND dm.is_deleted = 0 AND dm.created_at > datetime('now', '-60 days')
 
     ORDER BY createdAt DESC
     LIMIT ?
