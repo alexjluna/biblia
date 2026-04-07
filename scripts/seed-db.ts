@@ -4,9 +4,11 @@ import { join } from "path";
 
 const DB_PATH = join(__dirname, "..", "biblia.db");
 const useModernized = process.argv.includes("--modernized");
+const useRV1960 = process.argv.includes("--rv1960");
 const JSON_PATH = join(
   __dirname, "..", "data",
-  useModernized ? "rv_1909_modernizada.json" : "rv_1909.json"
+  useRV1960 ? "rv_1960.json" :
+  useModernized ? "rv_1909_modernizada.json" : "rv_1960.json"
 );
 
 interface RawVerse {
