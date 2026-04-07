@@ -1,8 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Source_Serif_4, Inter } from "next/font/google";
 import "./globals.css";
 import { TabBar } from "@/components/TabBar";
 import { SessionWrapper } from "@/components/SessionWrapper";
+import { InstallPrompt } from "@/components/InstallPrompt";
 
 const sourceSerif = Source_Serif_4({
   variable: "--font-source-serif",
@@ -20,6 +21,23 @@ export const metadata: Metadata = {
   title: "Biblia — Reina Valera 1960",
   description:
     "Lee la Biblia, guarda tus versículos favoritos y compártelos por WhatsApp",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Biblia",
+  },
+  icons: {
+    icon: "/favicon.svg",
+    apple: "/icons/icon.svg",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#7C5C3E",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
 };
 
 export default function RootLayout({
@@ -30,6 +48,7 @@ export default function RootLayout({
   return (
     <html
       lang="es"
+      data-scroll-behavior="smooth"
       className={`${sourceSerif.variable} ${inter.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-parchment text-text-primary">
@@ -43,6 +62,7 @@ export default function RootLayout({
               Aviso legal
             </a>
           </footer>
+          <InstallPrompt />
           <TabBar />
         </SessionWrapper>
       </body>

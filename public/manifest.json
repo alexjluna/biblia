@@ -1,0 +1,17 @@
+{
+  "name": "Biblia — Reina Valera 1960",
+  "short_name": "Biblia",
+  "description": "Lee la Biblia, guarda tus versículos favoritos y compártelos",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FAFAF8",
+  "theme_color": "#7C5C3E",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
