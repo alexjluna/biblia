@@ -4,7 +4,7 @@ export function buildShareText(
   chapter: number,
   verse: number
 ): string {
-  return `"${text}"\n— ${bookName} ${chapter}:${verse} (RV 1909)`;
+  return `"${text}"\n— ${bookName} ${chapter}:${verse} (RV 1960)`;
 }
 
 export function buildWhatsAppUrl(

@@ -16,7 +16,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Biblia — Reina Valera 1909",
+  title: "Biblia — Reina Valera 1960",
   description:
     "Lee la Biblia, guarda tus versículos favoritos y compártelos por WhatsApp",
 };

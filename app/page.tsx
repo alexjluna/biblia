@@ -12,7 +12,7 @@ export default function HomePage() {
         <h1 className="text-3xl font-bold font-[family-name:var(--font-source-serif)] text-text-primary">
           Biblia
         </h1>
-        <p className="text-sm text-text-secondary mt-1">Reina Valera 1909</p>
+        <p className="text-sm text-text-secondary mt-1">Reina Valera 1960</p>
       </header>
 
       <div className="space-y-8">
