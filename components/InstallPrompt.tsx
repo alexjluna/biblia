@@ -21,6 +21,11 @@ export function InstallPrompt() {
 
     if (standalone) return;
 
+    // Only show on mobile devices
+    const isMobile = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+      || window.innerWidth < 768;
+    if (!isMobile) return;
+
     // Check if dismissed recently (don't show again for 7 days)
     const dismissed = localStorage.getItem("install-dismissed");
     if (dismissed && Date.now() - parseInt(dismissed) < 7 * 24 * 60 * 60 * 1000) return;
