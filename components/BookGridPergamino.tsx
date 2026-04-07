@@ -66,13 +66,13 @@ export function BookGridPergamino({ books, testament, progressMap }: BookGridPer
         if (!categoryBooks) return null;
         return (
           <div key={category}>
-            {/* Decorative divider with category name */}
+            {/* Category separator with diamond */}
             <div className="flex items-center gap-3 mb-3">
-              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-accent/30 to-transparent" />
-              <span className="text-xs font-semibold uppercase tracking-[0.15em] text-accent/70">
+              <div className="w-3 h-3 rotate-45 bg-accent/60 flex-shrink-0" />
+              <span className="text-xs font-semibold uppercase tracking-wider text-accent/70">
                 {category}
               </span>
-              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-accent/30 to-transparent" />
+              <div className="flex-1 h-px bg-accent/15" />
             </div>
 
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5">

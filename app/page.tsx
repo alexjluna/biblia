@@ -7,7 +7,7 @@ import {
   getReadingPosition,
   getReadChaptersForBook,
 } from "@/lib/queries/reading-progress";
-import { BookGridPergamino as BookGrid } from "@/components/BookGridPergamino";
+import { BookGrid } from "@/components/BookGrid";
 import { ContinueReadingCard } from "@/components/ContinueReadingCard";
 import { DailyVerseCard } from "@/components/DailyVerseCard";
 import { UserMenu } from "@/components/UserMenu";
