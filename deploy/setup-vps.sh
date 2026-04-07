@@ -10,7 +10,7 @@ set -e
 DOMAIN="santabiblia.es"
 APP_DIR="/var/www/biblia"
 REPO="https://github.com/alexjluna/biblia.git"
-BRANCH="pro"
+BRANCH="main"
 
 echo "=========================================="
 echo " Desplegando Biblia App en $DOMAIN"
@@ -43,7 +43,7 @@ cd $APP_DIR
 # 5. Instalar dependencias, crear DB, y compilar
 echo "[5/7] Instalando dependencias y compilando..."
 npm install
-npx tsx scripts/seed-db.ts --modernized
+npx tsx scripts/seed-db.ts
 npm run build
 
 # 6. Configurar Nginx

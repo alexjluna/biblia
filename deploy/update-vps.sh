@@ -10,9 +10,9 @@ APP_DIR="/var/www/biblia"
 echo "Actualizando Biblia App..."
 
 cd $APP_DIR
-git pull origin pro
+git pull origin main
 npm install
-npx tsx scripts/seed-db.ts --modernized
+npx tsx scripts/seed-db.ts
 npm run build
 pm2 restart biblia
 
