@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================
-# Actualizar la app en el VPS (tras push a pro)
+# Actualizar la app en el VPS (tras push a main)
 # ============================================
 
 set -e
@@ -12,7 +12,10 @@ echo "Actualizando Biblia App..."
 cd $APP_DIR
 git pull origin main
 npm install
-npx tsx scripts/seed-db.ts
+
+# Migrar DB (NO re-seed — eso borraría datos de usuarios)
+npx tsx scripts/migrate-auth.ts
+
 npm run build
 pm2 restart biblia
 

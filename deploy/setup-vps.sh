@@ -40,14 +40,30 @@ sudo chown $USER:$USER $APP_DIR
 git clone -b $BRANCH $REPO $APP_DIR
 cd $APP_DIR
 
-# 5. Instalar dependencias, crear DB, y compilar
-echo "[5/7] Instalando dependencias y compilando..."
+# 5. Configurar variables de entorno
+echo "[5/8] Configurando variables de entorno..."
+if [ ! -f $APP_DIR/.env.local ]; then
+  cat > $APP_DIR/.env.local <<ENV
+AUTH_SECRET=$(openssl rand -base64 32)
+AUTH_GOOGLE_ID=TU_GOOGLE_CLIENT_ID
+AUTH_GOOGLE_SECRET=TU_GOOGLE_CLIENT_SECRET
+AUTH_URL=https://santabiblia.es
+RESEND_API_KEY=TU_RESEND_API_KEY
+RESEND_FROM_EMAIL=Biblia <noreply@santabiblia.es>
+ENV
+  echo "IMPORTANTE: Edita $APP_DIR/.env.local con tus credenciales reales"
+  echo "  nano $APP_DIR/.env.local"
+  read -p "Presiona Enter cuando hayas editado el .env.local..."
+fi
+
+# 6. Instalar dependencias, crear DB, y compilar
+echo "[6/8] Instalando dependencias y compilando..."
 npm install
-npx tsx scripts/seed-db.ts
+npx tsx scripts/seed-db.ts --rv1960
 npm run build
 
-# 6. Configurar Nginx
-echo "[6/7] Configurando Nginx..."
+# 7. Configurar Nginx
+echo "[7/8] Configurando Nginx..."
 sudo tee /etc/nginx/sites-available/biblia > /dev/null <<NGINX
 server {
     listen 80;
@@ -71,8 +87,8 @@ sudo ln -sf /etc/nginx/sites-available/biblia /etc/nginx/sites-enabled/
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t && sudo systemctl restart nginx
 
-# 7. Iniciar app con PM2
-echo "[7/7] Iniciando app con PM2..."
+# 8. Iniciar app con PM2
+echo "[8/8] Iniciando app con PM2..."
 cd $APP_DIR
 pm2 start npm --name "biblia" -- start
 pm2 save
