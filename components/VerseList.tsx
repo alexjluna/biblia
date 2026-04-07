@@ -92,7 +92,7 @@ export function VerseList({
           const isFav = favIds.has(v.id);
           const isBookmarked = bookmarkedVerse === v.verse;
           const discussion = discussionSummaries[v.id];
-          const hasDiscussion = !!discussion;
+          const hasDiscussion = isLoggedIn && !!discussion;
 
           return (
             <span

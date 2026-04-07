@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getTopReaders, getUserRank, getTotalParticipants } from "@/lib/queries/ranking";
 import { RankingList } from "@/components/RankingList";
@@ -7,7 +8,8 @@ export const dynamic = "force-dynamic";
 
 export default async function RankingPage() {
   const session = await auth();
-  const userId = session?.user?.id ?? null;
+  if (!session?.user?.id) redirect("/login");
+  const userId = session.user.id;
 
   const topReaders = getTopReaders(10);
   const totalParticipants = getTotalParticipants();
