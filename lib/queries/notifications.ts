@@ -57,7 +57,7 @@ export function getNotifications(userId: string, limit: number = 50): Notificati
        JOIN users fu ON n.from_user_id = fu.id
        JOIN discussions d ON n.discussion_id = d.id
        JOIN verses v ON d.verse_id = v.id
-       JOIN books b ON v.book_number = b.number
+       JOIN books b ON v.book_number = b.number AND v.version_id = b.version_id
        WHERE n.user_id = ?
        ORDER BY n.is_read ASC, n.created_at DESC
        LIMIT ?`

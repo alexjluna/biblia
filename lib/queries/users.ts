@@ -120,7 +120,7 @@ export function getUserActivity(userId: string, limit: number = 20): ActivityIte
   const rows = db.prepare(`
     SELECT 'read' as type, b.number as bookNumber, b.name as bookName, rp.chapter, NULL as verse, NULL as detail, rp.completed_at as createdAt
     FROM reading_progress rp
-    JOIN books b ON rp.book_number = b.number
+    JOIN books b ON rp.book_number = b.number AND rp.version_id = b.version_id
     WHERE rp.user_id = ? AND rp.completed_at > datetime('now', '-60 days')
 
     UNION ALL
@@ -128,7 +128,7 @@ export function getUserActivity(userId: string, limit: number = 20): ActivityIte
     SELECT 'favorite' as type, b.number as bookNumber, b.name as bookName, v.chapter, v.verse, NULL as detail, f.created_at as createdAt
     FROM favorites f
     JOIN verses v ON f.verse_id = v.id
-    JOIN books b ON v.book_number = b.number
+    JOIN books b ON v.book_number = b.number AND v.version_id = b.version_id
     WHERE f.user_id = ? AND f.created_at > datetime('now', '-60 days')
 
     UNION ALL
@@ -137,7 +137,7 @@ export function getUserActivity(userId: string, limit: number = 20): ActivityIte
     FROM discussion_messages dm
     JOIN discussions d ON dm.discussion_id = d.id
     JOIN verses v ON d.verse_id = v.id
-    JOIN books b ON v.book_number = b.number
+    JOIN books b ON v.book_number = b.number AND v.version_id = b.version_id
     WHERE dm.user_id = ? AND dm.is_deleted = 0 AND dm.created_at > datetime('now', '-60 days')
 
     ORDER BY createdAt DESC

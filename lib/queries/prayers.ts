@@ -27,7 +27,7 @@ export function getPrayerRequests(requestingUserId: string | null, limit: number
        FROM prayer_requests pr
        JOIN users u ON pr.user_id = u.id
        LEFT JOIN verses v ON pr.verse_id = v.id
-       LEFT JOIN books b ON v.book_number = b.number
+       LEFT JOIN books b ON v.book_number = b.number AND v.version_id = b.version_id
        WHERE pr.expires_at > datetime('now')
        ORDER BY pr.created_at DESC
        LIMIT ?`
