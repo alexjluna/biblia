@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTopicBySlug, getTopicVerses } from "@/lib/topics";
+import { getActiveVersion } from "@/lib/version";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -11,7 +12,8 @@ export default async function TopicPage({ params }: Props) {
   const topic = getTopicBySlug(slug);
   if (!topic) notFound();
 
-  const verses = getTopicVerses(slug);
+  const versionId = await getActiveVersion();
+  const verses = getTopicVerses(slug, versionId);
 
   return (
     <div className="max-w-lg mx-auto px-4 py-6">

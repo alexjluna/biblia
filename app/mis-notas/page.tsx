@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getUserNotes } from "@/lib/queries/notes";
+import { getActiveVersion } from "@/lib/version";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +10,8 @@ export default async function MisNotasPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
-  const notes = getUserNotes(session.user.id, 50);
+  const versionId = await getActiveVersion();
+  const notes = getUserNotes(session.user.id, versionId, 50);
 
   return (
     <div className="max-w-lg mx-auto px-4 py-6">

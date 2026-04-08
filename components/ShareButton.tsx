@@ -8,6 +8,7 @@ interface ShareButtonProps {
   bookName: string;
   chapter: number;
   verse: number;
+  versionLabel?: string;
 }
 
 export function ShareButton({
@@ -15,13 +16,14 @@ export function ShareButton({
   bookName,
   chapter,
   verse,
+  versionLabel = "RV 1960",
 }: ShareButtonProps) {
   const [showMenu, setShowMenu] = useState(false);
 
-  const shareText = buildShareText(text, bookName, chapter, verse);
+  const shareText = buildShareText(text, bookName, chapter, verse, versionLabel);
 
   const handleWhatsApp = () => {
-    const url = buildWhatsAppUrl(text, bookName, chapter, verse);
+    const url = buildWhatsAppUrl(text, bookName, chapter, verse, versionLabel);
     window.open(url, "_blank");
     setShowMenu(false);
   };

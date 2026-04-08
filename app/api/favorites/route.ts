@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getFavorites, addFavorite } from "@/lib/queries/favorites";
 import { getDb } from "@/lib/db";
+import { DEFAULT_VERSION, VALID_VERSIONS, type BibleVersionId } from "@/lib/version";
+
+function getVersion(request: NextRequest): BibleVersionId {
+  const v = request.nextUrl.searchParams.get("version") || request.cookies.get("bible_version")?.value;
+  return v && VALID_VERSIONS.includes(v as BibleVersionId) ? (v as BibleVersionId) : DEFAULT_VERSION;
+}
 
 export async function GET(request: NextRequest) {
   const session = await auth();
@@ -9,6 +15,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
+  const versionId = getVersion(request);
   const verseId = request.nextUrl.searchParams.get("verseId");
 
   if (verseId) {
@@ -18,7 +25,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ favoriteId: row?.id || null });
   }
 
-  const favorites = getFavorites(session.user.id);
+  const favorites = getFavorites(session.user.id, versionId);
   return NextResponse.json(favorites);
 }
 

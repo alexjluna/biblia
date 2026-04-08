@@ -9,6 +9,12 @@ import {
 import { validateContent } from "@/lib/validation";
 import { canCreateDiscussion } from "@/lib/rate-limit";
 import { canPostContent } from "@/lib/auth-check";
+import { DEFAULT_VERSION, VALID_VERSIONS, type BibleVersionId } from "@/lib/version";
+
+function getVersion(request: NextRequest): BibleVersionId {
+  const v = request.nextUrl.searchParams.get("version") || request.cookies.get("bible_version")?.value;
+  return v && VALID_VERSIONS.includes(v as BibleVersionId) ? (v as BibleVersionId) : DEFAULT_VERSION;
+}
 
 export async function GET(request: NextRequest) {
   const bookNumber = request.nextUrl.searchParams.get("bookNumber");
@@ -16,7 +22,9 @@ export async function GET(request: NextRequest) {
   const verseId = request.nextUrl.searchParams.get("verseId");
 
   if (bookNumber && chapter) {
+    const versionId = getVersion(request);
     const summaries = getDiscussionSummariesForChapter(
+      versionId,
       parseInt(bookNumber, 10),
       parseInt(chapter, 10)
     );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useBibleVersion } from "./BibleVersionProvider";
 
 interface MarkReadButtonProps {
   bookNumber: number;
@@ -13,6 +14,7 @@ export function MarkReadButton({
   chapter,
   initialIsRead,
 }: MarkReadButtonProps) {
+  const { version } = useBibleVersion();
   const [isRead, setIsRead] = useState(initialIsRead);
   const [loading, setLoading] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -27,7 +29,7 @@ export function MarkReadButton({
       const res = await fetch("/api/reading-progress", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bookNumber, chapter }),
+        body: JSON.stringify({ bookNumber, chapter, version }),
       });
 
       if (res.ok || res.status === 409) {

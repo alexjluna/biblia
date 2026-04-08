@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
-import { getBookByNumber } from "@/lib/queries/books";
+import { getBookByNumber, getAdjacentBook } from "@/lib/queries/books";
 import { getVerses } from "@/lib/queries/verses";
 import { getFavoriteVerseIds } from "@/lib/queries/favorites";
 import {
@@ -13,6 +13,7 @@ import { getNotedVerseIds } from "@/lib/queries/notes";
 import { VerseList } from "@/components/VerseList";
 import { ChapterNav } from "@/components/ChapterNav";
 import { MarkReadButton } from "@/components/MarkReadButton";
+import { getActiveVersion } from "@/lib/version";
 
 export const dynamic = "force-dynamic";
 
@@ -28,10 +29,12 @@ export default async function ChapterPage({ params, searchParams }: Props) {
   const chapter = parseInt(chapterStr, 10);
   const scrollToVerse = verseParam ? parseInt(verseParam, 10) : undefined;
 
-  const book = getBookByNumber(bookNum);
+  const versionId = await getActiveVersion();
+
+  const book = getBookByNumber(versionId, bookNum);
   if (!book || chapter < 1 || chapter > book.chapters_count) notFound();
 
-  const verses = getVerses(bookNum, chapter);
+  const verses = getVerses(versionId, bookNum, chapter);
   if (verses.length === 0) notFound();
 
   const session = await auth();
@@ -40,7 +43,7 @@ export default async function ChapterPage({ params, searchParams }: Props) {
   // Favorites: only load if logged in
   let favoriteVerseIds: number[] = [];
   if (userId) {
-    const favoriteIds = getFavoriteVerseIds(userId);
+    const favoriteIds = getFavoriteVerseIds(userId, versionId);
     favoriteVerseIds = verses
       .filter((v) => favoriteIds.has(v.id))
       .map((v) => v.id);
@@ -50,9 +53,9 @@ export default async function ChapterPage({ params, searchParams }: Props) {
   let chapterIsRead = false;
   let savedVerse: number | undefined;
   if (userId) {
-    chapterIsRead = isChapterRead(userId, bookNum, chapter);
+    chapterIsRead = isChapterRead(userId, versionId, bookNum, chapter);
     // Check if user has a saved verse position in this chapter
-    const position = getReadingPosition(userId);
+    const position = getReadingPosition(userId, versionId);
     if (position && position.bookNumber === bookNum && position.chapter === chapter) {
       savedVerse = position.verse;
     }
@@ -60,19 +63,19 @@ export default async function ChapterPage({ params, searchParams }: Props) {
   }
 
   // Discussion summaries for this chapter
-  const discussionMap = getDiscussionSummariesForChapter(bookNum, chapter);
+  const discussionMap = getDiscussionSummariesForChapter(versionId, bookNum, chapter);
   const discussionSummaries = Object.fromEntries(discussionMap);
 
   // Notes for this chapter (only if logged in)
   let notedVerseIds: number[] = [];
   if (userId) {
-    const noted = getNotedVerseIds(userId, bookNum, chapter);
+    const noted = getNotedVerseIds(userId, versionId, bookNum, chapter);
     notedVerseIds = Array.from(noted);
   }
 
-  // Get prev/next book for navigation
-  const prevBook = bookNum > 1 ? getBookByNumber(bookNum - 1) : null;
-  const nextBook = bookNum < 66 ? getBookByNumber(bookNum + 1) : null;
+  // Get prev/next book for navigation using sort_order
+  const prevBook = getAdjacentBook(versionId, bookNum, "prev");
+  const nextBook = getAdjacentBook(versionId, bookNum, "next");
 
   return (
     <div className="max-w-lg mx-auto px-4 py-6">

@@ -1,16 +1,19 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getUserStats, getUserActivity } from "@/lib/queries/users";
-import { getUserRank, getTotalParticipants } from "@/lib/queries/ranking";
+import { getUserRank, getTotalParticipants, getTotalChapters } from "@/lib/queries/ranking";
 import { getNotifications, markAllRead } from "@/lib/queries/notifications";
 import { getDb } from "@/lib/db";
 import { MiCuentaClient } from "@/components/MiCuentaClient";
+import { getActiveVersion } from "@/lib/version";
 
 export const dynamic = "force-dynamic";
 
 export default async function MiCuentaPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
+
+  const versionId = await getActiveVersion();
 
   const user = getDb()
     .prepare("SELECT id, name, email, image, password_hash, created_at FROM users WHERE id = ?")
@@ -26,8 +29,9 @@ export default async function MiCuentaPage() {
   const stats = getUserStats(session.user.id);
   const activity = getUserActivity(session.user.id, 15);
   const notifications = getNotifications(session.user.id, 20);
-  const userRank = getUserRank(session.user.id);
-  const totalParticipants = getTotalParticipants();
+  const userRank = getUserRank(session.user.id, versionId);
+  const totalParticipants = getTotalParticipants(versionId);
+  const totalChapters = getTotalChapters(versionId);
 
   const showInRanking = (getDb()
     .prepare("SELECT show_in_ranking FROM users WHERE id = ?")
@@ -50,6 +54,7 @@ export default async function MiCuentaPage() {
       notifications={notifications}
       ranking={userRank ? { userRank: userRank.rank, totalParticipants } : null}
       showInRanking={showInRanking}
+      totalChapters={totalChapters}
     />
   );
 }

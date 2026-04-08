@@ -167,7 +167,7 @@ export interface DailyVerse {
 /**
  * Get today's verse deterministically based on the day of the year.
  */
-export function getDailyVerse(): DailyVerse {
+export function getDailyVerse(versionId: string): DailyVerse {
   const now = new Date();
   const startOfYear = new Date(now.getFullYear(), 0, 0);
   const dayOfYear = Math.floor(
@@ -181,10 +181,10 @@ export function getDailyVerse(): DailyVerse {
     .prepare(
       `SELECT v.text, b.name as book_name
        FROM verses v
-       JOIN books b ON v.book_number = b.number
-       WHERE v.book_number = ? AND v.chapter = ? AND v.verse = ?`
+       JOIN books b ON v.book_number = b.number AND v.version_id = b.version_id
+       WHERE v.version_id = ? AND v.book_number = ? AND v.chapter = ? AND v.verse = ?`
     )
-    .get(bookNumber, chapter, verse) as { text: string; book_name: string } | undefined;
+    .get(versionId, bookNumber, chapter, verse) as { text: string; book_name: string } | undefined;
 
   return {
     bookNumber,

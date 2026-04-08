@@ -1,14 +1,26 @@
+export interface BibleVersion {
+  id: string;
+  name: string;
+  short_name: string;
+  tradition: string;
+  books_count: number;
+  description: string | null;
+}
+
 export interface Book {
+  version_id: string;
   number: number;
   name: string;
   abbrev: string;
   testament: "AT" | "NT";
   category: string;
   chapters_count: number;
+  sort_order: number;
 }
 
 export interface Verse {
   id: number;
+  version_id: string;
   book_number: number;
   chapter: number;
   verse: number;
@@ -45,6 +57,7 @@ export interface ReadingProgress {
 export interface BookProgress {
   bookNumber: number;
   bookName: string;
+  testament: "AT" | "NT";
   chaptersCount: number;
   chaptersRead: number;
   completed: boolean;

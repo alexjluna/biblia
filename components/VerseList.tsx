@@ -7,6 +7,7 @@ import { ShareButton } from "./ShareButton";
 import { DiscussButton } from "./DiscussButton";
 import { DiscussionSheet } from "./DiscussionSheet";
 import { NoteSheet } from "./NoteSheet";
+import { useBibleVersion } from "./BibleVersionProvider";
 
 interface VerseListProps {
   verses: Verse[];
@@ -29,6 +30,7 @@ export function VerseList({
   discussionSummaries = {},
   notedVerseIds = [],
 }: VerseListProps) {
+  const { version, versionShort } = useBibleVersion();
   const [selectedVerseId, setSelectedVerseId] = useState<number | null>(null);
   const [favIds, setFavIds] = useState<Set<number>>(
     new Set(favoriteVerseIds)
@@ -78,6 +80,7 @@ export function VerseList({
           bookNumber: verse.book_number,
           chapter: verse.chapter,
           verse: verse.verse,
+          version,
         }),
       });
       setBookmarkedVerse(verse.verse);
@@ -223,6 +226,7 @@ export function VerseList({
                     bookName={bookName}
                     chapter={v.chapter}
                     verse={v.verse}
+                    versionLabel={versionShort}
                   />
                 </span>
               )}

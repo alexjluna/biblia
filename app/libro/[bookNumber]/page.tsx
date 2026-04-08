@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { getBookByNumber } from "@/lib/queries/books";
 import { getReadChaptersForBook } from "@/lib/queries/reading-progress";
 import { ChapterGrid } from "@/components/ChapterGrid";
+import { getActiveVersion } from "@/lib/version";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,8 @@ interface Props {
 export default async function BookPage({ params }: Props) {
   const { bookNumber } = await params;
   const num = parseInt(bookNumber, 10);
-  const book = getBookByNumber(num);
+  const versionId = await getActiveVersion();
+  const book = getBookByNumber(versionId, num);
 
   if (!book) notFound();
 
@@ -22,7 +24,7 @@ export default async function BookPage({ params }: Props) {
 
   let readChapters: Set<number> | undefined;
   if (userId) {
-    readChapters = getReadChaptersForBook(userId, num);
+    readChapters = getReadChaptersForBook(userId, versionId, num);
   }
 
   return (

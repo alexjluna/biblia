@@ -3,15 +3,16 @@ import type { BookProgress, OverallProgress, ReadingPosition } from "../types";
 
 export function markChapterRead(
   userId: string,
+  versionId: string,
   bookNumber: number,
   chapter: number
 ): { id: number } | null {
   try {
     const result = getDb()
       .prepare(
-        "INSERT INTO reading_progress (user_id, book_number, chapter) VALUES (?, ?, ?)"
+        "INSERT INTO reading_progress (user_id, version_id, book_number, chapter) VALUES (?, ?, ?, ?)"
       )
-      .run(userId, bookNumber, chapter);
+      .run(userId, versionId, bookNumber, chapter);
     return { id: Number(result.lastInsertRowid) };
   } catch {
     return null; // Already marked (UNIQUE constraint)
@@ -20,30 +21,32 @@ export function markChapterRead(
 
 export function unmarkChapterRead(
   userId: string,
+  versionId: string,
   bookNumber: number,
   chapter: number
 ): boolean {
   const result = getDb()
     .prepare(
-      "DELETE FROM reading_progress WHERE user_id = ? AND book_number = ? AND chapter = ?"
+      "DELETE FROM reading_progress WHERE user_id = ? AND version_id = ? AND book_number = ? AND chapter = ?"
     )
-    .run(userId, bookNumber, chapter);
+    .run(userId, versionId, bookNumber, chapter);
   return result.changes > 0;
 }
 
 export function markBookRead(
   userId: string,
+  versionId: string,
   bookNumber: number,
   totalChapters: number
 ): number {
   const db = getDb();
   const insert = db.prepare(
-    "INSERT OR IGNORE INTO reading_progress (user_id, book_number, chapter) VALUES (?, ?, ?)"
+    "INSERT OR IGNORE INTO reading_progress (user_id, version_id, book_number, chapter) VALUES (?, ?, ?, ?)"
   );
   const markAll = db.transaction(() => {
     let marked = 0;
     for (let ch = 1; ch <= totalChapters; ch++) {
-      const r = insert.run(userId, bookNumber, ch);
+      const r = insert.run(userId, versionId, bookNumber, ch);
       marked += r.changes;
     }
     return marked;
@@ -51,70 +54,75 @@ export function markBookRead(
   return markAll();
 }
 
-export function unmarkBookRead(userId: string, bookNumber: number): number {
+export function unmarkBookRead(userId: string, versionId: string, bookNumber: number): number {
   const result = getDb()
-    .prepare("DELETE FROM reading_progress WHERE user_id = ? AND book_number = ?")
-    .run(userId, bookNumber);
+    .prepare("DELETE FROM reading_progress WHERE user_id = ? AND version_id = ? AND book_number = ?")
+    .run(userId, versionId, bookNumber);
   return result.changes;
 }
 
 export function getReadChaptersForBook(
   userId: string,
+  versionId: string,
   bookNumber: number
 ): Set<number> {
   const rows = getDb()
     .prepare(
-      "SELECT chapter FROM reading_progress WHERE user_id = ? AND book_number = ?"
+      "SELECT chapter FROM reading_progress WHERE user_id = ? AND version_id = ? AND book_number = ?"
     )
-    .all(userId, bookNumber) as { chapter: number }[];
+    .all(userId, versionId, bookNumber) as { chapter: number }[];
   return new Set(rows.map((r) => r.chapter));
 }
 
 export function isChapterRead(
   userId: string,
+  versionId: string,
   bookNumber: number,
   chapter: number
 ): boolean {
   const row = getDb()
     .prepare(
-      "SELECT 1 FROM reading_progress WHERE user_id = ? AND book_number = ? AND chapter = ?"
+      "SELECT 1 FROM reading_progress WHERE user_id = ? AND version_id = ? AND book_number = ? AND chapter = ?"
     )
-    .get(userId, bookNumber, chapter);
+    .get(userId, versionId, bookNumber, chapter);
   return !!row;
 }
 
 export function getReadChapterCounts(
-  userId: string
+  userId: string,
+  versionId: string
 ): Map<number, number> {
   const rows = getDb()
     .prepare(
-      "SELECT book_number, COUNT(*) as cnt FROM reading_progress WHERE user_id = ? GROUP BY book_number"
+      "SELECT book_number, COUNT(*) as cnt FROM reading_progress WHERE user_id = ? AND version_id = ? GROUP BY book_number"
     )
-    .all(userId) as { book_number: number; cnt: number }[];
+    .all(userId, versionId) as { book_number: number; cnt: number }[];
   return new Map(rows.map((r) => [r.book_number, r.cnt]));
 }
 
-export function getOverallProgress(userId: string): OverallProgress {
+export function getOverallProgress(userId: string, versionId: string): OverallProgress {
   const db = getDb();
 
   const totalRow = db
-    .prepare("SELECT SUM(chapters_count) as total FROM books")
-    .get() as { total: number };
+    .prepare("SELECT SUM(chapters_count) as total FROM books WHERE version_id = ?")
+    .get(versionId) as { total: number };
 
   const readRow = db
-    .prepare("SELECT COUNT(*) as read_count FROM reading_progress WHERE user_id = ?")
-    .get(userId) as { read_count: number };
+    .prepare("SELECT COUNT(*) as read_count FROM reading_progress WHERE user_id = ? AND version_id = ?")
+    .get(userId, versionId) as { read_count: number };
 
   const bookProgressRows = db
     .prepare(
-      `SELECT b.number as bookNumber, b.name as bookName, b.chapters_count as chaptersCount,
+      `SELECT b.number as bookNumber, b.name as bookName, b.testament,
+              b.chapters_count as chaptersCount,
               COUNT(rp.id) as chaptersRead
        FROM books b
-       LEFT JOIN reading_progress rp ON b.number = rp.book_number AND rp.user_id = ?
+       LEFT JOIN reading_progress rp ON b.number = rp.book_number AND rp.version_id = b.version_id AND rp.user_id = ?
+       WHERE b.version_id = ?
        GROUP BY b.number
-       ORDER BY b.number`
+       ORDER BY b.sort_order`
     )
-    .all(userId) as (Omit<BookProgress, "completed">)[];
+    .all(userId, versionId) as (Omit<BookProgress, "completed">)[];
 
   return {
     totalChapters: totalRow.total,
@@ -132,15 +140,15 @@ export function getOverallProgress(userId: string): OverallProgress {
 
 // Reading position (continue reading)
 
-export function getReadingPosition(userId: string): ReadingPosition | null {
+export function getReadingPosition(userId: string, versionId: string): ReadingPosition | null {
   const row = getDb()
     .prepare(
       `SELECT rp.book_number, b.name as book_name, rp.chapter, rp.verse, rp.updated_at
        FROM reading_position rp
-       JOIN books b ON rp.book_number = b.number
-       WHERE rp.user_id = ?`
+       JOIN books b ON rp.book_number = b.number AND rp.version_id = b.version_id
+       WHERE rp.user_id = ? AND rp.version_id = ?`
     )
-    .get(userId) as
+    .get(userId, versionId) as
     | { book_number: number; book_name: string; chapter: number; verse: number; updated_at: string }
     | undefined;
 
@@ -157,24 +165,25 @@ export function getReadingPosition(userId: string): ReadingPosition | null {
 
 export function setReadingPosition(
   userId: string,
+  versionId: string,
   bookNumber: number,
   chapter: number,
   verse: number = 1
 ): void {
   getDb()
     .prepare(
-      `INSERT INTO reading_position (user_id, book_number, chapter, verse, updated_at)
-       VALUES (?, ?, ?, ?, datetime('now'))
-       ON CONFLICT(user_id) DO UPDATE SET
+      `INSERT INTO reading_position (user_id, version_id, book_number, chapter, verse, updated_at)
+       VALUES (?, ?, ?, ?, ?, datetime('now'))
+       ON CONFLICT(user_id, version_id) DO UPDATE SET
          book_number = excluded.book_number,
          chapter = excluded.chapter,
          verse = excluded.verse,
          updated_at = datetime('now')`
     )
-    .run(userId, bookNumber, chapter, verse);
+    .run(userId, versionId, bookNumber, chapter, verse);
 }
 
-export function getLastReadBook(userId: string): {
+export function getLastReadBook(userId: string, versionId: string): {
   bookNumber: number;
   bookName: string;
   chapter: number;
@@ -184,12 +193,12 @@ export function getLastReadBook(userId: string): {
     .prepare(
       `SELECT rp.book_number, b.name as book_name, rp.chapter, rp.completed_at
        FROM reading_progress rp
-       JOIN books b ON rp.book_number = b.number
-       WHERE rp.user_id = ?
+       JOIN books b ON rp.book_number = b.number AND rp.version_id = b.version_id
+       WHERE rp.user_id = ? AND rp.version_id = ?
        ORDER BY rp.completed_at DESC
        LIMIT 1`
     )
-    .get(userId) as
+    .get(userId, versionId) as
     | { book_number: number; book_name: string; chapter: number; completed_at: string }
     | undefined;
 

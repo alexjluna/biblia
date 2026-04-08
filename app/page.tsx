@@ -11,10 +11,13 @@ import { BookGrid } from "@/components/BookGrid";
 import { ContinueReadingCard } from "@/components/ContinueReadingCard";
 import { DailyVerseCard } from "@/components/DailyVerseCard";
 import { UserMenu } from "@/components/UserMenu";
+import { VersionToggle } from "@/components/VersionToggle";
 import { getDailyVerse } from "@/lib/daily-verse";
+import { getActiveVersion } from "@/lib/version";
 
 export default async function HomePage() {
-  const books = getBooks();
+  const versionId = await getActiveVersion();
+  const books = getBooks(versionId);
   const atBooks = books.filter((b) => b.testament === "AT");
   const ntBooks = books.filter((b) => b.testament === "NT");
 
@@ -32,14 +35,14 @@ export default async function HomePage() {
   } | null = null;
 
   if (userId) {
-    progressMap = getReadChapterCounts(userId);
+    progressMap = getReadChapterCounts(userId, versionId);
 
     // Find continue reading data
-    const position = getReadingPosition(userId);
+    const position = getReadingPosition(userId, versionId);
     if (position) {
       const book = books.find((b) => b.number === position.bookNumber);
       if (book) {
-        const readChapters = getReadChaptersForBook(userId, book.number);
+        const readChapters = getReadChaptersForBook(userId, versionId, book.number);
         // Find next unread chapter
         let nextChapter = position.chapter;
         for (let ch = 1; ch <= book.chapters_count; ch++) {
@@ -74,10 +77,12 @@ export default async function HomePage() {
         <a href="/" className="text-3xl font-bold font-[family-name:var(--font-source-serif)] text-text-primary hover:text-accent transition-colors">
           Biblia
         </a>
-        <p className="text-sm text-text-secondary mt-1">Reina Valera 1960</p>
+        <div className="mt-2">
+          <VersionToggle />
+        </div>
       </header>
 
-      <DailyVerseCard verse={getDailyVerse()} />
+      <DailyVerseCard verse={getDailyVerse(versionId)} />
 
       <a
         href="/oracion"

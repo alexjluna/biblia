@@ -1,18 +1,18 @@
 import { getDb } from "../db";
 import type { Favorite } from "../types";
 
-export function getFavorites(userId: string): Favorite[] {
+export function getFavorites(userId: string, versionId: string): Favorite[] {
   return getDb()
     .prepare(
       `SELECT f.id, f.verse_id, f.created_at,
               b.name as book_name, v.book_number, v.chapter, v.verse, v.text
        FROM favorites f
        JOIN verses v ON f.verse_id = v.id
-       JOIN books b ON v.book_number = b.number
-       WHERE f.user_id = ?
+       JOIN books b ON v.book_number = b.number AND v.version_id = b.version_id
+       WHERE f.user_id = ? AND v.version_id = ?
        ORDER BY f.created_at DESC`
     )
-    .all(userId) as Favorite[];
+    .all(userId, versionId) as Favorite[];
 }
 
 export function addFavorite(userId: string, verseId: number): { id: number } | null {
@@ -40,9 +40,13 @@ export function isFavorite(userId: string, verseId: number): boolean {
   return !!row;
 }
 
-export function getFavoriteVerseIds(userId: string): Set<number> {
+export function getFavoriteVerseIds(userId: string, versionId: string): Set<number> {
   const rows = getDb()
-    .prepare("SELECT verse_id FROM favorites WHERE user_id = ?")
-    .all(userId) as { verse_id: number }[];
+    .prepare(
+      `SELECT f.verse_id FROM favorites f
+       JOIN verses v ON f.verse_id = v.id
+       WHERE f.user_id = ? AND v.version_id = ?`
+    )
+    .all(userId, versionId) as { verse_id: number }[];
   return new Set(rows.map((r) => r.verse_id));
 }

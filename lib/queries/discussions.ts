@@ -4,6 +4,7 @@ import type { DiscussionSummary, DiscussionMessage } from "../types";
 // --- Discussion CRUD ---
 
 export function getDiscussionSummariesForChapter(
+  versionId: string,
   bookNumber: number,
   chapter: number
 ): Map<number, DiscussionSummary> {
@@ -12,9 +13,9 @@ export function getDiscussionSummariesForChapter(
       `SELECT d.verse_id as verseId, d.id as discussionId, d.message_count as messageCount
        FROM discussions d
        JOIN verses v ON d.verse_id = v.id
-       WHERE v.book_number = ? AND v.chapter = ? AND d.message_count > 0`
+       WHERE v.version_id = ? AND v.book_number = ? AND v.chapter = ? AND d.message_count > 0`
     )
-    .all(bookNumber, chapter) as DiscussionSummary[];
+    .all(versionId, bookNumber, chapter) as DiscussionSummary[];
 
   const map = new Map<number, DiscussionSummary>();
   for (const row of rows) {

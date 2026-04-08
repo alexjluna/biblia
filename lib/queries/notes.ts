@@ -25,14 +25,14 @@ export function getNoteForVerse(userId: string, verseId: number): VerseNote | nu
   return row ?? null;
 }
 
-export function getNotedVerseIds(userId: string, bookNumber: number, chapter: number): Set<number> {
+export function getNotedVerseIds(userId: string, versionId: string, bookNumber: number, chapter: number): Set<number> {
   const rows = getDb()
     .prepare(
       `SELECT vn.verse_id FROM verse_notes vn
        JOIN verses v ON vn.verse_id = v.id
-       WHERE vn.user_id = ? AND v.book_number = ? AND v.chapter = ?`
+       WHERE vn.user_id = ? AND v.version_id = ? AND v.book_number = ? AND v.chapter = ?`
     )
-    .all(userId, bookNumber, chapter) as { verse_id: number }[];
+    .all(userId, versionId, bookNumber, chapter) as { verse_id: number }[];
   return new Set(rows.map((r) => r.verse_id));
 }
 
@@ -56,7 +56,7 @@ export function deleteNote(userId: string, verseId: number): boolean {
   return result.changes > 0;
 }
 
-export function getUserNotes(userId: string, limit: number = 50): NoteWithVerse[] {
+export function getUserNotes(userId: string, versionId: string, limit: number = 50): NoteWithVerse[] {
   return getDb()
     .prepare(
       `SELECT vn.id, vn.verse_id as verseId, vn.content,
@@ -65,10 +65,10 @@ export function getUserNotes(userId: string, limit: number = 50): NoteWithVerse[
               v.chapter, v.verse, v.text as verseText
        FROM verse_notes vn
        JOIN verses v ON vn.verse_id = v.id
-       JOIN books b ON v.book_number = b.number
-       WHERE vn.user_id = ?
+       JOIN books b ON v.book_number = b.number AND v.version_id = b.version_id
+       WHERE vn.user_id = ? AND v.version_id = ?
        ORDER BY vn.updated_at DESC
        LIMIT ?`
     )
-    .all(userId, limit) as NoteWithVerse[];
+    .all(userId, versionId, limit) as NoteWithVerse[];
 }

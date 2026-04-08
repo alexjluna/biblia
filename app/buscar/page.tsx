@@ -1,6 +1,7 @@
 import { searchVerses } from "@/lib/queries/verses";
 import { SearchBar } from "@/components/SearchBar";
 import { getAllTopics } from "@/lib/topics";
+import { getActiveVersion } from "@/lib/version";
 import Link from "next/link";
 
 interface Props {
@@ -10,7 +11,8 @@ interface Props {
 export default async function BuscarPage({ searchParams }: Props) {
   const { q } = await searchParams;
   const query = q?.trim() || "";
-  const results = query.length >= 2 ? searchVerses(query) : [];
+  const versionId = await getActiveVersion();
+  const results = query.length >= 2 ? searchVerses(versionId, query) : [];
 
   // Group results by book
   const grouped = new Map<string, typeof results>();

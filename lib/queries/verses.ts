@@ -1,17 +1,17 @@
 import { getDb } from "../db";
 import type { Verse, SearchResult } from "../types";
 
-export function getVerses(bookNumber: number, chapter: number): Verse[] {
+export function getVerses(versionId: string, bookNumber: number, chapter: number): Verse[] {
   return getDb()
     .prepare(
-      "SELECT * FROM verses WHERE book_number = ? AND chapter = ? ORDER BY verse"
+      "SELECT * FROM verses WHERE version_id = ? AND book_number = ? AND chapter = ? ORDER BY verse"
     )
-    .all(bookNumber, chapter) as Verse[];
+    .all(versionId, bookNumber, chapter) as Verse[];
 }
 
-export function searchVerses(query: string, limit = 50): SearchResult[] {
+export function searchVerses(versionId: string, query: string, limit = 50): SearchResult[] {
   const db = getDb();
-  // Use FTS5 for full-text search
+  // Use FTS5 for full-text search, filtered by version
   const ftsQuery = query
     .trim()
     .split(/\s+/)
@@ -23,9 +23,10 @@ export function searchVerses(query: string, limit = 50): SearchResult[] {
       `SELECT v.id, v.book_number, b.name as book_name, v.chapter, v.verse, v.text
        FROM verses v
        JOIN verses_fts fts ON v.id = fts.rowid
-       JOIN books b ON v.book_number = b.number
+       JOIN books b ON v.book_number = b.number AND v.version_id = b.version_id
        WHERE verses_fts MATCH ?
+         AND v.version_id = ?
        LIMIT ?`
     )
-    .all(ftsQuery, limit) as SearchResult[];
+    .all(ftsQuery, versionId, limit) as SearchResult[];
 }

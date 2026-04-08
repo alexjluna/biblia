@@ -4,6 +4,7 @@ import { getFavorites } from "@/lib/queries/favorites";
 import { getUserCollections, getFavoriteIdsByCollection } from "@/lib/queries/collections";
 import { FavoritosClient } from "@/components/FavoritosClient";
 import { redirect } from "next/navigation";
+import { getActiveVersion } from "@/lib/version";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,8 @@ export default async function FavoritosPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
-  const favorites = getFavorites(session.user.id);
+  const versionId = await getActiveVersion();
+  const favorites = getFavorites(session.user.id, versionId);
   const collections = getUserCollections(session.user.id);
 
   // Build map of collectionId -> favoriteIds

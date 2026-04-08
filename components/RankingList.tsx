@@ -5,9 +5,8 @@ interface RankingListProps {
   currentUserId: string | null;
   currentUserRank: RankingEntry | null;
   totalParticipants: number;
+  totalChapters: number;
 }
-
-const TOTAL_CHAPTERS = 1189;
 
 function getMedalClass(rank: number): string {
   switch (rank) {
@@ -22,8 +21,8 @@ function getMedalClass(rank: number): string {
   }
 }
 
-function getMotivationalMessage(chaptersRead: number): string {
-  const pct = chaptersRead / TOTAL_CHAPTERS;
+function getMotivationalMessage(chaptersRead: number, totalChapters: number): string {
+  const pct = chaptersRead / totalChapters;
   if (pct === 0) return "Cada capítulo es un paso en tu camino con Dios";
   if (pct < 0.25) return "Has comenzado un hermoso recorrido. Sigue adelante.";
   if (pct < 0.5) return `Llevas ${chaptersRead} capítulos. Que cada palabra te acompañe.`;
@@ -35,11 +34,13 @@ function getMotivationalMessage(chaptersRead: number): string {
 function RankingRow({
   entry,
   isCurrentUser,
+  totalChapters,
 }: {
   entry: RankingEntry;
   isCurrentUser: boolean;
+  totalChapters: number;
 }) {
-  const pct = (entry.chaptersRead / TOTAL_CHAPTERS) * 100;
+  const pct = (entry.chaptersRead / totalChapters) * 100;
   const initials = entry.name
     .split(" ")
     .map((w) => w[0])
@@ -95,6 +96,7 @@ export function RankingList({
   currentUserId,
   currentUserRank,
   totalParticipants,
+  totalChapters,
 }: RankingListProps) {
   const userInTop = topReaders.some((r) => r.userId === currentUserId);
 
@@ -106,20 +108,21 @@ export function RankingList({
             key={entry.userId}
             entry={entry}
             isCurrentUser={entry.userId === currentUserId}
+            totalChapters={totalChapters}
           />
         ))}
 
         {!userInTop && currentUserRank && (
           <>
             <div className="border-t-2 border-dashed border-separator mx-4" />
-            <RankingRow entry={currentUserRank} isCurrentUser={true} />
+            <RankingRow entry={currentUserRank} isCurrentUser={true} totalChapters={totalChapters} />
           </>
         )}
       </div>
 
       {currentUserRank && (
         <p className="text-xs text-text-secondary text-center mt-3 italic">
-          {getMotivationalMessage(currentUserRank.chaptersRead)}
+          {getMotivationalMessage(currentUserRank.chaptersRead, totalChapters)}
         </p>
       )}
 

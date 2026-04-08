@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { getOverallProgress, getReadingPosition } from "@/lib/queries/reading-progress";
 import { OverallProgressCard } from "@/components/OverallProgressCard";
 import { BookProgressRow } from "@/components/BookProgressRow";
+import { getActiveVersion } from "@/lib/version";
 
 export const dynamic = "force-dynamic";
 
@@ -11,12 +12,9 @@ export default async function MiLecturaPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
-  const progress = getOverallProgress(session.user.id);
-  const position = getReadingPosition(session.user.id);
-
-  console.log("[mi-lectura] userId:", session.user.id);
-  console.log("[mi-lectura] chaptersRead:", progress.chaptersRead);
-  console.log("[mi-lectura] position:", JSON.stringify(position));
+  const versionId = await getActiveVersion();
+  const progress = getOverallProgress(session.user.id, versionId);
+  const position = getReadingPosition(session.user.id, versionId);
 
   const inProgress = progress.bookProgress.filter(
     (b) => b.chaptersRead > 0 && !b.completed
@@ -24,16 +22,16 @@ export default async function MiLecturaPage() {
   const completed = progress.bookProgress.filter((b) => b.completed);
 
   const atProgress = progress.bookProgress
-    .filter((b) => b.bookNumber <= 39)
+    .filter((b) => b.testament === "AT")
     .reduce((sum, b) => sum + b.chaptersRead, 0);
   const atTotal = progress.bookProgress
-    .filter((b) => b.bookNumber <= 39)
+    .filter((b) => b.testament === "AT")
     .reduce((sum, b) => sum + b.chaptersCount, 0);
   const ntProgress = progress.bookProgress
-    .filter((b) => b.bookNumber >= 40)
+    .filter((b) => b.testament === "NT")
     .reduce((sum, b) => sum + b.chaptersRead, 0);
   const ntTotal = progress.bookProgress
-    .filter((b) => b.bookNumber >= 40)
+    .filter((b) => b.testament === "NT")
     .reduce((sum, b) => sum + b.chaptersCount, 0);
 
   if (progress.chaptersRead === 0 && !position) {

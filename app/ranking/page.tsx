@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { getTopReaders, getUserRank, getTotalParticipants } from "@/lib/queries/ranking";
+import { getTopReaders, getUserRank, getTotalParticipants, getTotalChapters } from "@/lib/queries/ranking";
 import { RankingList } from "@/components/RankingList";
+import { getActiveVersion } from "@/lib/version";
 
 export const dynamic = "force-dynamic";
 
@@ -11,14 +12,16 @@ export default async function RankingPage() {
   if (!session?.user?.id) redirect("/login");
   const userId = session.user.id;
 
-  const topReaders = getTopReaders(10);
-  const totalParticipants = getTotalParticipants();
+  const versionId = await getActiveVersion();
+  const topReaders = getTopReaders(versionId, 10);
+  const totalParticipants = getTotalParticipants(versionId);
+  const totalChapters = getTotalChapters(versionId);
 
   let currentUserRank = null;
   if (userId) {
     const isInTop = topReaders.some((r) => r.userId === userId);
     if (!isInTop) {
-      currentUserRank = getUserRank(userId);
+      currentUserRank = getUserRank(userId, versionId);
     } else {
       currentUserRank = topReaders.find((r) => r.userId === userId) ?? null;
     }
@@ -63,6 +66,7 @@ export default async function RankingPage() {
           currentUserId={userId}
           currentUserRank={currentUserRank}
           totalParticipants={totalParticipants}
+          totalChapters={totalChapters}
         />
       )}
     </div>

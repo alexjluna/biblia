@@ -24,6 +24,7 @@ interface Props {
   notifications: Notification[];
   ranking: { userRank: number; totalParticipants: number } | null;
   showInRanking: boolean;
+  totalChapters: number;
 }
 
 function timeAgo(dateStr: string): string {
@@ -40,7 +41,7 @@ function timeAgo(dateStr: string): string {
   return date.toLocaleDateString("es-ES", { day: "numeric", month: "short" });
 }
 
-export function MiCuentaClient({ user, stats, activity, notifications, ranking, showInRanking: initialShowInRanking }: Props) {
+export function MiCuentaClient({ user, stats, activity, notifications, ranking, showInRanking: initialShowInRanking, totalChapters }: Props) {
   const [rankingVisible, setRankingVisible] = useState(initialShowInRanking);
   const [rankingToggling, setRankingToggling] = useState(false);
 
@@ -142,7 +143,7 @@ export function MiCuentaClient({ user, stats, activity, notifications, ranking, 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 mb-4">
         {[
-          { label: "Capítulos leídos", value: stats.chaptersRead, total: "de 1189" },
+          { label: "Capítulos leídos", value: stats.chaptersRead, total: `de ${totalChapters}` },
           { label: "Versículos favoritos", value: stats.favorites },
           { label: "Reflexiones", value: stats.discussions },
           { label: "Corazones dados", value: stats.likesGiven },

@@ -31,7 +31,7 @@ export function getTopicBySlug(slug: string): { name: string; icon: string } | n
   return topic ? { name: topic.name, icon: topic.icon } : null;
 }
 
-export function getTopicVerses(slug: string): TopicVerse[] {
+export function getTopicVerses(slug: string, versionId: string): TopicVerse[] {
   const topic = temasData.find((t) => t.slug === slug);
   if (!topic) return [];
 
@@ -44,10 +44,10 @@ export function getTopicVerses(slug: string): TopicVerse[] {
         `SELECT v.id, v.book_number as bookNumber, b.name as bookName,
                 v.chapter, v.verse, v.text
          FROM verses v
-         JOIN books b ON v.book_number = b.number
-         WHERE v.book_number = ? AND v.chapter = ? AND v.verse = ?`
+         JOIN books b ON v.book_number = b.number AND v.version_id = b.version_id
+         WHERE v.version_id = ? AND v.book_number = ? AND v.chapter = ? AND v.verse = ?`
       )
-      .get(bookNumber, chapter, verse) as TopicVerse | undefined;
+      .get(versionId, bookNumber, chapter, verse) as TopicVerse | undefined;
 
     if (row) verses.push(row);
   }
