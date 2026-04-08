@@ -19,7 +19,7 @@ const labels: Record<BibleVersionId, string> = {
 
 const shorts: Record<BibleVersionId, string> = {
   rv1960: "R. Valera 1960",
-  bdj: "Biblia Jerusalen",
+  bdj: "Biblia Jerusalén",
 };
 
 const BibleVersionContext = createContext<BibleVersionContextValue>({

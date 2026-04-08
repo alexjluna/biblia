@@ -6,12 +6,12 @@ export type BibleVersionId = (typeof VALID_VERSIONS)[number];
 
 export const VERSION_LABELS: Record<BibleVersionId, string> = {
   rv1960: "Reina Valera 1960",
-  bdj: "Biblia de Jerusalen",
+  bdj: "Biblia de Jerusalén",
 };
 
 export const VERSION_SHORT: Record<BibleVersionId, string> = {
   rv1960: "R. Valera 1960",
-  bdj: "Biblia Jerusalen",
+  bdj: "Biblia Jerusalén",
 };
 
 /** Read the active Bible version from the cookie (for Server Components). */

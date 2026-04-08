@@ -25,7 +25,7 @@ export function VersionToggle() {
             : "text-text-secondary hover:text-text-primary"
         }`}
       >
-        Biblia Jerusalen
+        Biblia Jerusalén
       </button>
     </div>
   );
