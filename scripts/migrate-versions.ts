@@ -1,8 +1,6 @@
 /**
- * Migration script: Add multi-version support to the database.
- *
- * This script migrates the existing single-version database to support
- * multiple Bible versions. It preserves all existing user data.
+ * Safe migration: Add multi-version support using ALTER TABLE.
+ * NEVER drops tables with user data. Each step is idempotent.
  *
  * Usage: npx tsx scripts/migrate-versions.ts
  */
@@ -13,15 +11,23 @@ import { join } from "path";
 const DB_PATH = join(__dirname, "..", "biblia.db");
 const db = new Database(DB_PATH, { readonly: false });
 db.pragma("journal_mode = WAL");
-db.pragma("foreign_keys = OFF"); // Temporarily disable for migration
 
-console.log("Starting migration to multi-version schema...");
+function hasColumn(table: string, column: string): boolean {
+  return (db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[])
+    .some((c) => c.name === column);
+}
 
-const migrate = db.transaction(() => {
-  // 1. Create bible_versions table
-  console.log("  Creating bible_versions table...");
+function tableExists(table: string): boolean {
+  return !!db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?").get(table);
+}
+
+console.log("Starting safe multi-version migration...");
+
+// 1. Create bible_versions table
+console.log("  Creating bible_versions table...");
+if (!tableExists("bible_versions")) {
   db.exec(`
-    CREATE TABLE IF NOT EXISTS bible_versions (
+    CREATE TABLE bible_versions (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       short_name TEXT NOT NULL,
@@ -30,150 +36,63 @@ const migrate = db.transaction(() => {
       description TEXT
     );
   `);
+}
+db.exec(`
+  INSERT OR IGNORE INTO bible_versions (id, name, short_name, tradition, books_count, description)
+    VALUES ('rv1960', 'Reina Valera 1960', 'RV 1960', 'protestante', 66, 'Biblia Reina-Valera Revisión de 1960');
+  INSERT OR IGNORE INTO bible_versions (id, name, short_name, tradition, books_count, description)
+    VALUES ('bdj', 'Biblia de Jerusalen', 'BdJ', 'católica', 73, 'Biblia de Jerusalén, 4ª edición 2009');
+`);
 
-  db.prepare(`
-    INSERT OR IGNORE INTO bible_versions (id, name, short_name, tradition, books_count, description)
-    VALUES ('rv1960', 'Reina Valera 1960', 'RV 1960', 'protestante', 66, 'Biblia Reina-Valera Revisión de 1960')
-  `).run();
+// 2. Add columns to books (NO DROP)
+console.log("  Migrating books...");
+if (!hasColumn("books", "version_id")) {
+  db.exec(`ALTER TABLE books ADD COLUMN version_id TEXT NOT NULL DEFAULT 'rv1960'`);
+}
+if (!hasColumn("books", "sort_order")) {
+  db.exec(`ALTER TABLE books ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0`);
+  db.exec(`UPDATE books SET sort_order = number WHERE sort_order = 0`);
+}
 
-  db.prepare(`
-    INSERT OR IGNORE INTO bible_versions (id, name, short_name, tradition, books_count, description)
-    VALUES ('bdj', 'Biblia de Jerusalen', 'BdJ', 'católica', 73, 'Biblia de Jerusalén, 4ª edición 2009')
-  `).run();
+// 3. Add version_id to verses (NO DROP)
+console.log("  Migrating verses...");
+if (!hasColumn("verses", "version_id")) {
+  db.exec(`ALTER TABLE verses ADD COLUMN version_id TEXT NOT NULL DEFAULT 'rv1960'`);
+}
 
-  // 2. Migrate books table: add version_id and sort_order
-  console.log("  Migrating books table...");
-  const hasVersionCol = db.prepare("PRAGMA table_info(books)").all()
-    .some((c: any) => c.name === "version_id");
+// 4. Add version_id to reading_progress (NO DROP)
+console.log("  Migrating reading_progress...");
+if (!hasColumn("reading_progress", "version_id")) {
+  db.exec(`ALTER TABLE reading_progress ADD COLUMN version_id TEXT NOT NULL DEFAULT 'rv1960'`);
+}
 
-  if (!hasVersionCol) {
-    db.exec(`
-      CREATE TABLE books_new (
-        version_id TEXT NOT NULL REFERENCES bible_versions(id),
-        number INTEGER NOT NULL,
-        name TEXT NOT NULL,
-        abbrev TEXT NOT NULL,
-        testament TEXT NOT NULL CHECK(testament IN ('AT','NT')),
-        category TEXT NOT NULL,
-        chapters_count INTEGER NOT NULL,
-        sort_order INTEGER NOT NULL,
-        PRIMARY KEY (version_id, number)
-      );
+// 5. Add version_id to reading_position (NO DROP)
+console.log("  Migrating reading_position...");
+if (!hasColumn("reading_position", "version_id")) {
+  db.exec(`ALTER TABLE reading_position ADD COLUMN version_id TEXT NOT NULL DEFAULT 'rv1960'`);
+}
 
-      INSERT INTO books_new (version_id, number, name, abbrev, testament, category, chapters_count, sort_order)
-        SELECT 'rv1960', number, name, abbrev, testament, category, chapters_count, number
-        FROM books;
+// 6. Add preferred_version to users (NO DROP)
+console.log("  Migrating users...");
+if (!hasColumn("users", "preferred_version")) {
+  db.exec(`ALTER TABLE users ADD COLUMN preferred_version TEXT NOT NULL DEFAULT 'rv1960'`);
+}
 
-      DROP TABLE books;
-      ALTER TABLE books_new RENAME TO books;
-    `);
-  }
+// 7. Create indexes
+console.log("  Creating indexes...");
+db.exec(`
+  CREATE INDEX IF NOT EXISTS idx_verses_version_book_chapter ON verses(version_id, book_number, chapter);
+  CREATE INDEX IF NOT EXISTS idx_reading_progress_user_version ON reading_progress(user_id, version_id, book_number);
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_books_version_number ON books(version_id, number);
+`);
 
-  // 3. Migrate verses table: add version_id
-  console.log("  Migrating verses table...");
-  const versesHasVersion = db.prepare("PRAGMA table_info(verses)").all()
-    .some((c: any) => c.name === "version_id");
-
-  if (!versesHasVersion) {
-    db.exec(`
-      CREATE TABLE verses_new (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        version_id TEXT NOT NULL REFERENCES bible_versions(id),
-        book_number INTEGER NOT NULL,
-        chapter INTEGER NOT NULL,
-        verse INTEGER NOT NULL,
-        text TEXT NOT NULL,
-        FOREIGN KEY (version_id, book_number) REFERENCES books(version_id, number)
-      );
-
-      INSERT INTO verses_new (id, version_id, book_number, chapter, verse, text)
-        SELECT id, 'rv1960', book_number, chapter, verse, text
-        FROM verses;
-
-      DROP TABLE IF EXISTS verses_fts;
-      DROP TABLE verses;
-      ALTER TABLE verses_new RENAME TO verses;
-      CREATE INDEX idx_verses_version_book_chapter ON verses(version_id, book_number, chapter);
-    `);
-  }
-
-  // 4. Migrate reading_progress: add version_id
-  console.log("  Migrating reading_progress table...");
-  const rpHasVersion = db.prepare("PRAGMA table_info(reading_progress)").all()
-    .some((c: any) => c.name === "version_id");
-
-  if (!rpHasVersion) {
-    db.exec(`
-      CREATE TABLE reading_progress_new (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        version_id TEXT NOT NULL REFERENCES bible_versions(id),
-        book_number INTEGER NOT NULL,
-        chapter INTEGER NOT NULL,
-        completed_at TEXT NOT NULL DEFAULT (datetime('now')),
-        UNIQUE(user_id, version_id, book_number, chapter),
-        FOREIGN KEY (version_id, book_number) REFERENCES books(version_id, number)
-      );
-
-      INSERT INTO reading_progress_new (id, user_id, version_id, book_number, chapter, completed_at)
-        SELECT id, user_id, 'rv1960', book_number, chapter, completed_at
-        FROM reading_progress;
-
-      DROP TABLE reading_progress;
-      ALTER TABLE reading_progress_new RENAME TO reading_progress;
-      CREATE INDEX idx_reading_progress_user_version ON reading_progress(user_id, version_id, book_number);
-    `);
-  }
-
-  // 5. Migrate reading_position: add version_id, change UNIQUE
-  console.log("  Migrating reading_position table...");
-  const posHasVersion = db.prepare("PRAGMA table_info(reading_position)").all()
-    .some((c: any) => c.name === "version_id");
-
-  if (!posHasVersion) {
-    db.exec(`
-      CREATE TABLE reading_position_new (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        version_id TEXT NOT NULL REFERENCES bible_versions(id),
-        book_number INTEGER NOT NULL,
-        chapter INTEGER NOT NULL,
-        verse INTEGER NOT NULL DEFAULT 1,
-        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
-        UNIQUE(user_id, version_id),
-        FOREIGN KEY (version_id, book_number) REFERENCES books(version_id, number)
-      );
-
-      INSERT INTO reading_position_new (id, user_id, version_id, book_number, chapter, verse, updated_at)
-        SELECT id, user_id, 'rv1960', book_number, chapter, verse, updated_at
-        FROM reading_position;
-
-      DROP TABLE reading_position;
-      ALTER TABLE reading_position_new RENAME TO reading_position;
-    `);
-  }
-
-  // 6. Add preferred_version to users
-  console.log("  Adding preferred_version to users...");
-  const usersHasPref = db.prepare("PRAGMA table_info(users)").all()
-    .some((c: any) => c.name === "preferred_version");
-
-  if (!usersHasPref) {
-    db.exec(`ALTER TABLE users ADD COLUMN preferred_version TEXT NOT NULL DEFAULT 'rv1960'`);
-  }
-
-  // 7. Rebuild FTS5 index
-  console.log("  Rebuilding FTS5 index...");
-  db.exec(`
-    DROP TABLE IF EXISTS verses_fts;
-    CREATE VIRTUAL TABLE verses_fts USING fts5(text, content=verses, content_rowid=id);
-    INSERT INTO verses_fts(rowid, text) SELECT id, text FROM verses;
-  `);
-});
-
-migrate();
-
-db.pragma("foreign_keys = ON");
+// 8. Rebuild FTS (only table recreated — no user data)
+console.log("  Rebuilding FTS index...");
+db.exec(`
+  DROP TABLE IF EXISTS verses_fts;
+  CREATE VIRTUAL TABLE verses_fts USING fts5(text, content=verses, content_rowid=id);
+  INSERT INTO verses_fts(rowid, text) SELECT id, text FROM verses;
+`);
 
 // Verify
 const versionCount = db.prepare("SELECT COUNT(*) as c FROM bible_versions").get() as { c: number };
@@ -181,10 +100,23 @@ const bookCount = db.prepare("SELECT COUNT(*) as c FROM books").get() as { c: nu
 const verseCount = db.prepare("SELECT COUNT(*) as c FROM verses").get() as { c: number };
 const ftsCount = db.prepare("SELECT COUNT(*) as c FROM verses_fts").get() as { c: number };
 
+// Verify user data preserved
+const userCount = db.prepare("SELECT COUNT(*) as c FROM users").get() as { c: number };
+const favCount = db.prepare("SELECT COUNT(*) as c FROM favorites").get() as { c: number };
+const progressCount = db.prepare("SELECT COUNT(*) as c FROM reading_progress").get() as { c: number };
+const prayerCount = db.prepare("SELECT COUNT(*) as c FROM prayer_requests").get() as { c: number };
+const discussionCount = db.prepare("SELECT COUNT(*) as c FROM discussions").get() as { c: number };
+
 console.log(`\nMigration complete!`);
 console.log(`  Versions: ${versionCount.c}`);
 console.log(`  Books: ${bookCount.c}`);
 console.log(`  Verses: ${verseCount.c}`);
 console.log(`  FTS entries: ${ftsCount.c}`);
+console.log(`\n  User data preserved:`);
+console.log(`    Users: ${userCount.c}`);
+console.log(`    Favorites: ${favCount.c}`);
+console.log(`    Reading progress: ${progressCount.c}`);
+console.log(`    Prayer requests: ${prayerCount.c}`);
+console.log(`    Discussions: ${discussionCount.c}`);
 
 db.close();

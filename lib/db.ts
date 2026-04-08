@@ -6,22 +6,34 @@ const DB_PATH = join(process.cwd(), "biblia.db");
 let db: Database.Database | null = null;
 let migrationDone = false;
 
+function hasColumn(database: Database.Database, table: string, column: string): boolean {
+  return (database.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[])
+    .some((c) => c.name === column);
+}
+
+function tableExists(database: Database.Database, table: string): boolean {
+  return !!database.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?").get(table);
+}
+
+/**
+ * Safe migration using ALTER TABLE ADD COLUMN.
+ * NEVER drops tables with user data. Each step is idempotent.
+ */
 function runMigrations(database: Database.Database): void {
   if (migrationDone) return;
   migrationDone = true;
 
-  const hasVersionsTable = database
-    .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='bible_versions'")
-    .get();
+  // Check if migration is needed
+  if (tableExists(database, "bible_versions") && hasColumn(database, "books", "version_id")) {
+    return; // Already migrated
+  }
 
-  if (hasVersionsTable) return;
+  console.log("[db] Running safe multi-version migration (ALTER TABLE)...");
 
-  console.log("[db] Running multi-version migration...");
-  database.pragma("foreign_keys = OFF");
-
-  const migrate = database.transaction(() => {
+  // 1. Create bible_versions table (new table, no risk)
+  if (!tableExists(database, "bible_versions")) {
     database.exec(`
-      CREATE TABLE IF NOT EXISTS bible_versions (
+      CREATE TABLE bible_versions (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         short_name TEXT NOT NULL,
@@ -29,116 +41,59 @@ function runMigrations(database: Database.Database): void {
         books_count INTEGER NOT NULL,
         description TEXT
       );
-      INSERT OR IGNORE INTO bible_versions (id, name, short_name, tradition, books_count, description)
-        VALUES ('rv1960', 'Reina Valera 1960', 'RV 1960', 'protestante', 66, 'Biblia Reina-Valera Revisión de 1960');
-      INSERT OR IGNORE INTO bible_versions (id, name, short_name, tradition, books_count, description)
-        VALUES ('bdj', 'Biblia de Jerusalen', 'BdJ', 'católica', 73, 'Biblia de Jerusalén, 4ª edición 2009');
     `);
+  }
+  database.exec(`
+    INSERT OR IGNORE INTO bible_versions (id, name, short_name, tradition, books_count, description)
+      VALUES ('rv1960', 'Reina Valera 1960', 'RV 1960', 'protestante', 66, 'Biblia Reina-Valera Revisión de 1960');
+    INSERT OR IGNORE INTO bible_versions (id, name, short_name, tradition, books_count, description)
+      VALUES ('bdj', 'Biblia de Jerusalen', 'BdJ', 'católica', 73, 'Biblia de Jerusalén, 4ª edición 2009');
+  `);
 
-    const booksHasVersion = (database.prepare("PRAGMA table_info(books)").all() as { name: string }[])
-      .some((c) => c.name === "version_id");
-    if (!booksHasVersion) {
-      database.exec(`
-        CREATE TABLE books_new (
-          version_id TEXT NOT NULL REFERENCES bible_versions(id),
-          number INTEGER NOT NULL,
-          name TEXT NOT NULL,
-          abbrev TEXT NOT NULL,
-          testament TEXT NOT NULL CHECK(testament IN ('AT','NT')),
-          category TEXT NOT NULL,
-          chapters_count INTEGER NOT NULL,
-          sort_order INTEGER NOT NULL,
-          PRIMARY KEY (version_id, number)
-        );
-        INSERT INTO books_new (version_id, number, name, abbrev, testament, category, chapters_count, sort_order)
-          SELECT 'rv1960', number, name, abbrev, testament, category, chapters_count, number FROM books;
-        DROP TABLE books;
-        ALTER TABLE books_new RENAME TO books;
-      `);
-    }
+  // 2. Add version_id and sort_order to books (NO DROP)
+  if (!hasColumn(database, "books", "version_id")) {
+    database.exec(`ALTER TABLE books ADD COLUMN version_id TEXT NOT NULL DEFAULT 'rv1960'`);
+  }
+  if (!hasColumn(database, "books", "sort_order")) {
+    database.exec(`ALTER TABLE books ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0`);
+    database.exec(`UPDATE books SET sort_order = number WHERE sort_order = 0`);
+  }
 
-    const versesHasVersion = (database.prepare("PRAGMA table_info(verses)").all() as { name: string }[])
-      .some((c) => c.name === "version_id");
-    if (!versesHasVersion) {
-      database.exec(`
-        CREATE TABLE verses_new (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          version_id TEXT NOT NULL REFERENCES bible_versions(id),
-          book_number INTEGER NOT NULL,
-          chapter INTEGER NOT NULL,
-          verse INTEGER NOT NULL,
-          text TEXT NOT NULL,
-          FOREIGN KEY (version_id, book_number) REFERENCES books(version_id, number)
-        );
-        INSERT INTO verses_new (id, version_id, book_number, chapter, verse, text)
-          SELECT id, 'rv1960', book_number, chapter, verse, text FROM verses;
-        DROP TABLE IF EXISTS verses_fts;
-        DROP TABLE verses;
-        ALTER TABLE verses_new RENAME TO verses;
-        CREATE INDEX idx_verses_version_book_chapter ON verses(version_id, book_number, chapter);
-      `);
-    }
+  // 3. Add version_id to verses (NO DROP)
+  if (!hasColumn(database, "verses", "version_id")) {
+    database.exec(`ALTER TABLE verses ADD COLUMN version_id TEXT NOT NULL DEFAULT 'rv1960'`);
+  }
 
-    const rpHasVersion = (database.prepare("PRAGMA table_info(reading_progress)").all() as { name: string }[])
-      .some((c) => c.name === "version_id");
-    if (!rpHasVersion) {
-      database.exec(`
-        CREATE TABLE reading_progress_new (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          version_id TEXT NOT NULL REFERENCES bible_versions(id),
-          book_number INTEGER NOT NULL,
-          chapter INTEGER NOT NULL,
-          completed_at TEXT NOT NULL DEFAULT (datetime('now')),
-          UNIQUE(user_id, version_id, book_number, chapter),
-          FOREIGN KEY (version_id, book_number) REFERENCES books(version_id, number)
-        );
-        INSERT INTO reading_progress_new (id, user_id, version_id, book_number, chapter, completed_at)
-          SELECT id, user_id, 'rv1960', book_number, chapter, completed_at FROM reading_progress;
-        DROP TABLE reading_progress;
-        ALTER TABLE reading_progress_new RENAME TO reading_progress;
-        CREATE INDEX idx_reading_progress_user_version ON reading_progress(user_id, version_id, book_number);
-      `);
-    }
+  // 4. Add version_id to reading_progress (NO DROP)
+  if (!hasColumn(database, "reading_progress", "version_id")) {
+    database.exec(`ALTER TABLE reading_progress ADD COLUMN version_id TEXT NOT NULL DEFAULT 'rv1960'`);
+  }
 
-    const posHasVersion = (database.prepare("PRAGMA table_info(reading_position)").all() as { name: string }[])
-      .some((c) => c.name === "version_id");
-    if (!posHasVersion) {
-      database.exec(`
-        CREATE TABLE reading_position_new (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          version_id TEXT NOT NULL REFERENCES bible_versions(id),
-          book_number INTEGER NOT NULL,
-          chapter INTEGER NOT NULL,
-          verse INTEGER NOT NULL DEFAULT 1,
-          updated_at TEXT NOT NULL DEFAULT (datetime('now')),
-          UNIQUE(user_id, version_id),
-          FOREIGN KEY (version_id, book_number) REFERENCES books(version_id, number)
-        );
-        INSERT INTO reading_position_new (id, user_id, version_id, book_number, chapter, verse, updated_at)
-          SELECT id, user_id, 'rv1960', book_number, chapter, verse, updated_at FROM reading_position;
-        DROP TABLE reading_position;
-        ALTER TABLE reading_position_new RENAME TO reading_position;
-      `);
-    }
+  // 5. Add version_id to reading_position (NO DROP)
+  if (!hasColumn(database, "reading_position", "version_id")) {
+    database.exec(`ALTER TABLE reading_position ADD COLUMN version_id TEXT NOT NULL DEFAULT 'rv1960'`);
+  }
 
-    const usersHasPref = (database.prepare("PRAGMA table_info(users)").all() as { name: string }[])
-      .some((c) => c.name === "preferred_version");
-    if (!usersHasPref) {
-      database.exec(`ALTER TABLE users ADD COLUMN preferred_version TEXT NOT NULL DEFAULT 'rv1960'`);
-    }
+  // 6. Add preferred_version to users (NO DROP)
+  if (!hasColumn(database, "users", "preferred_version")) {
+    database.exec(`ALTER TABLE users ADD COLUMN preferred_version TEXT NOT NULL DEFAULT 'rv1960'`);
+  }
 
-    database.exec(`
-      DROP TABLE IF EXISTS verses_fts;
-      CREATE VIRTUAL TABLE verses_fts USING fts5(text, content=verses, content_rowid=id);
-      INSERT INTO verses_fts(rowid, text) SELECT id, text FROM verses;
-    `);
-  });
+  // 7. Create indexes (IF NOT EXISTS = safe)
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_verses_version_book_chapter ON verses(version_id, book_number, chapter);
+    CREATE INDEX IF NOT EXISTS idx_reading_progress_user_version ON reading_progress(user_id, version_id, book_number);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_books_version_number ON books(version_id, number);
+  `);
 
-  migrate();
-  database.pragma("foreign_keys = ON");
-  console.log("[db] Migration complete.");
+  // 8. Rebuild FTS (only table that gets recreated — no user data)
+  database.exec(`
+    DROP TABLE IF EXISTS verses_fts;
+    CREATE VIRTUAL TABLE verses_fts USING fts5(text, content=verses, content_rowid=id);
+    INSERT INTO verses_fts(rowid, text) SELECT id, text FROM verses;
+  `);
+
+  console.log("[db] Migration complete. All user data preserved.");
 }
 
 export function getDb(): Database.Database {
