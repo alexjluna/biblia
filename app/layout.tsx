@@ -1,9 +1,12 @@
 import type { Metadata, Viewport } from "next";
 import { Source_Serif_4, Inter } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { TabBar } from "@/components/TabBar";
 import { SessionWrapper } from "@/components/SessionWrapper";
 import { InstallPrompt } from "@/components/InstallPrompt";
+
+const isProduction = process.env.NODE_ENV === "production";
 
 const sourceSerif = Source_Serif_4({
   variable: "--font-source-serif",
@@ -51,6 +54,24 @@ export default function RootLayout({
       data-scroll-behavior="smooth"
       className={`${sourceSerif.variable} ${inter.variable} h-full antialiased`}
     >
+      <head>
+        {isProduction && (
+          <>
+            <Script
+              src="https://www.googletagmanager.com/gtag/js?id=G-NK370ZL180"
+              strategy="afterInteractive"
+            />
+            <Script id="gtag-init" strategy="afterInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', 'G-NK370ZL180');
+              `}
+            </Script>
+          </>
+        )}
+      </head>
       <body className="min-h-full flex flex-col bg-parchment text-text-primary">
         <SessionWrapper>
           <main className="flex-1 pb-20">{children}</main>
