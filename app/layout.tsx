@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { Source_Serif_4, Inter } from "next/font/google";
-import Script from "next/script";
 import "./globals.css";
 import { TabBar } from "@/components/TabBar";
 import { SessionWrapper } from "@/components/SessionWrapper";
@@ -54,23 +53,24 @@ export default function RootLayout({
       data-scroll-behavior="smooth"
       className={`${sourceSerif.variable} ${inter.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-parchment text-text-primary">
+      <head>
         {isProduction && (
           <>
-            <Script
-              src="https://www.googletagmanager.com/gtag/js?id=G-NK370ZL180"
-              strategy="afterInteractive"
+            <script async src="https://www.googletagmanager.com/gtag/js?id=G-NK370ZL180" />
+            <script
+              dangerouslySetInnerHTML={{
+                __html: `
+                  window.dataLayer = window.dataLayer || [];
+                  function gtag(){dataLayer.push(arguments);}
+                  gtag('js', new Date());
+                  gtag('config', 'G-NK370ZL180');
+                `,
+              }}
             />
-            <Script id="gtag-init" strategy="afterInteractive">
-              {`
-                window.dataLayer = window.dataLayer || [];
-                function gtag(){dataLayer.push(arguments);}
-                gtag('js', new Date());
-                gtag('config', 'G-NK370ZL180');
-              `}
-            </Script>
           </>
         )}
+      </head>
+      <body className="min-h-full flex flex-col bg-parchment text-text-primary">
         <SessionWrapper>
           <main className="flex-1 pb-20">{children}</main>
           <footer className="pb-18 text-center py-3">
