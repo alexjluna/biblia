@@ -54,7 +54,7 @@ export default function RootLayout({
       data-scroll-behavior="smooth"
       className={`${sourceSerif.variable} ${inter.variable} h-full antialiased`}
     >
-      <head>
+      <body className="min-h-full flex flex-col bg-parchment text-text-primary">
         {isProduction && (
           <>
             <Script
@@ -71,8 +71,6 @@ export default function RootLayout({
             </Script>
           </>
         )}
-      </head>
-      <body className="min-h-full flex flex-col bg-parchment text-text-primary">
         <SessionWrapper>
           <main className="flex-1 pb-20">{children}</main>
           <footer className="pb-18 text-center py-3">
